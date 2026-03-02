@@ -1,8 +1,8 @@
 import {
-  DatepickerEntryPoint,
+  DatepickerEntryPointLazy,
   type DatepickerEntryPointProps,
 } from "@/modules/datepicker";
-import { MainEntryPoint, type MainEntryPointProps } from "@/modules/main";
+import { MainEntryPointLazy, type MainEntryPointProps } from "@/modules/main";
 import { appStore } from "@/stores/app";
 import type { User } from "@/types/user";
 import ko from "knockout";
@@ -29,8 +29,8 @@ export class AppViewModel {
       new Date().toISOString().split("T")[0],
     );
     // Делаем React-компонент частью ViewModel
-    this.reactMainComponent = MainEntryPoint;
-    this.reactDatepickerComponent = DatepickerEntryPoint;
+    this.reactMainComponent = MainEntryPointLazy;
+    this.reactDatepickerComponent = DatepickerEntryPointLazy;
 
     // 1. Берем начальные данные из стора
     this.users(appStore.getState().users);
