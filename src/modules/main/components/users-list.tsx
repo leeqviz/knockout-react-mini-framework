@@ -1,6 +1,6 @@
-import { useAppStore } from "@/stores/app";
+import { useAppStore } from '@/stores/app';
 
-export default function UsersList() {
+export function UsersList() {
   // Подписываемся на пользователей
   const users = useAppStore((state) => state.users);
   const addUser = useAppStore((state) => state.addUser);
@@ -10,7 +10,7 @@ export default function UsersList() {
       {users.map((u) => (
         <div key={u.id}>{u.name}</div>
       ))}
-      <button onClick={() => addUser("Новый юзер")}>Добавить</button>
+      <button onClick={() => addUser('Новый юзер')}>Добавить</button>
     </div>
   );
 }

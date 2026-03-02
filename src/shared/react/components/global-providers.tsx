@@ -1,9 +1,5 @@
-import type { ReactNode } from "react";
+import type { ReactNode } from 'react';
 
-// TODO add theme provider
-
-export const GlobalProviders: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+export function GlobalProviders({ children }: { children: ReactNode }) {
   return <>{children}</>;
-};
+}
