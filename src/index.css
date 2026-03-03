@@ -1,10 +1,26 @@
 /* src/index.css */
 
 /* 1. Импортируем переменные темы (цвета, шрифты, брейкпоинты) */
-@import "tailwindcss/theme" layer(theme);
+@import 'tailwindcss/theme' layer(theme);
 
 /* 2. Импортируем генератор утилитарных классов (p-4, bg-blue-500 и т.д.) */
-@import "tailwindcss/utilities" layer(utilities);
+@import 'tailwindcss/utilities' layer(utilities);
 
 /* Мы намеренно НЕ импортируем "tailwindcss/preflight", 
    чтобы старый Knockout-сайт и его верстка остались в полной безопасности! */
+
+body {
+  font-family: sans-serif;
+  padding: 20px;
+}
+.old-knockout-app {
+  padding: 20px;
+  border: 2px dashed #ff9900;
+  max-width: 400px;
+}
+.ko-data {
+  background: #fff3e0;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
