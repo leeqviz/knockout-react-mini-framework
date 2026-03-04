@@ -1,82 +1,85 @@
-🚀 О проекте
-Гибридное веб-приложение, находящееся в процессе постепенной миграции с устаревшего стека (Knockout.js + jQuery) на современный (React + TypeScript).
-Проект использует паттерн "Микрофронтенды внутри монолита" (Strangler Fig Pattern), где новые фичи пишутся на React и монтируются внутрь существующих Knockout-шаблонов.
+# 🧬 Hybrid React-Knockout Web Application
 
-🛠 Технологический стек
-Сборщик: Vite
+[![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![React](https://img.shields.io/badge/react-%2320232a.svg?style=flat&logo=react&logoColor=%2361DAFB)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![JavaScript](https://img.shields.io/badge/javascript-%23F7DF1E.svg?style=flat&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![Knockout.js](https://img.shields.io/badge/Knockout.js-BF1D2D?style=flat&logo=knockout.js&logoColor=white)](https://knockoutjs.com/)
+[![jQuery](https://img.shields.io/badge/jquery-%230769AD.svg?style=flat&logo=jquery&logoColor=white)](https://jquery.com/)
+[![Zustand](https://img.shields.io/badge/zustand-%23443E38.svg?style=flat)](https://github.com/pmndrs/zustand)
+[![Tailwind CSS](https://img.shields.io/badge/tailwindcss-%2306B6D4.svg?style=flat&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Vitest](https://img.shields.io/badge/vitest-%236E9F18.svg?style=flat&logo=vitest&logoColor=white)](https://vitest.dev/)
+[![ESLint](https://img.shields.io/badge/eslint-%234B32C3.svg?style=flat&logo=eslint&logoColor=white)](https://eslint.org/)
+[![Prettier](https://img.shields.io/badge/prettier-%23F7B93E.svg?style=flat&logo=prettier&logoColor=black)](https://prettier.io/)
 
-Язык: TypeScript (Строгий режим)
+## 💡 About project
 
-Современный UI: React 18+
+A hybrid web application that exemplifies the embedding of independent React components into a framework built using Knockout.js and jQuery. New features are written in React and integrated into existing Knockout templates. React components are maximally isolated, while Knockout.js manages two-way data exchange.
 
-Легаси UI: Knockout.js, jQuery, jQuery UI
+## ⚙️ Technology stack
 
-Стейт-менеджер (React): Zustand
+1. **Bundler**: Vite
+2. **Language**: JavaScript, TypeScript _(Strict Mode)_
+3. **Infrastructure**: Knockout.js
+4. **UI**: React _(v19)_, jQuery _(v4)_
+5. **Global State Manager**: Zustand
+6. **Linter**: ESLint _(v9 Flat Config)_
+7. **Formatter**: Prettier
+8. **Testing framework**: Vitest, React Testing Library
+9. **Styling**: Tailwind CSS _(v4)_, CSS modules
 
-Линтинг и форматирование: ESLint (v9 Flat Config) + Prettier + Husky
+## 🧩 Architecture
 
-🏗 Архитектура и правила разработки
+## 📜 Development guidelines
 
-1. Как подружить React и Knockout (Мост)
-   Для рендера React-компонентов внутри старого HTML используется кастомный биндинг reactComponent.
-   Правило: Никогда не используйте ReactDOM.createRoot напрямую в бизнес-логике. Всегда используйте биндинг.
+1. Linking React and Knockout.js. A custom binding mechanism is used to render React components within an application written entirely in Knockout.js. Rule: Never use ReactDOM.createRoot directly in business logic. Always use binding. Components are automatically unmounted when the node is removed from the DOM.
 
-Пример использования в HTML:
+2. Lazy Loading (Code Splitting). To ensure the app loads as quickly as possible, all heavy React widgets should be wrapped in lazy components before passing them to Knockout. Create a wrapper file: `[WidgetName].lazy.tsx` using `React.lazy` and `Suspense`. Import the lazy wrapper into the ViewModel, not the widget itself.
 
-HTML
+3. Working with jQuery within React. If you need to wrap an old jQuery plugin (for example, Datepicker) in a React component: Be sure to import global initialization: `import './jquery-global'`; Use `useRef` to bind to the DOM element to delegate rendering to jQuery and easily track changes in React.
 
-<div data-bind="reactComponent: { component: MyReactWidget, props: { count: globalCount() } }"></div>
-Компоненты автоматически демонтируются при удалении узла из DOM.
+4. Global State Management. Knockout.js uses `ko.observable` to subscribe to the global Zustand state. React uses the hooks to subscribe to the global Zustand store. Synchronization between them (if needed) occurs by passing data from Zustand as props via binding.
 
-2. Ленивая загрузка (Code Splitting)
-   Чтобы старое приложение загружалось быстро, все тяжелые React-виджеты должны оборачиваться в ленивые компоненты перед передачей в Knockout.
+## 📂 Project structure
 
-Создайте файл-обертку: [ИмяВиджета].lazy.tsx с использованием React.lazy и Suspense.
+```text
+├── public/ # Статические файлы
+├── src/
+│ ├── components/ # Изолированные React-компоненты
+│ ├── bindings/ # Кастомные биндинги Knockout (точка входа React)
+│ ├── store/ # Zustand-сторы
+│ ├── legacy/ # Старые Knockout-шаблоны и jQuery-скрипты
+│ ├── tests/ # Тесты Vitest
+│ ├── main.ts # Точка входа в приложение
+│ └── style.css # Глобальные стили (включая директивы Tailwind)
+├── package.json
+├── tailwind.config.js # Конфигурация Tailwind CSS
+├── tsconfig.json
+└── vite.config.ts # Конфигурация сборщика и тестов
+```
 
-Импортируйте во ViewModel именно ленивую обертку, а не сам виджет.
+## 🔧 Installation and setup
 
-3. Работа с jQuery внутри React
-   Если необходимо обернуть старый jQuery-плагин (например, Datepicker) в React-компонент:
+Node version must be 22+
 
-Обязательно импортируйте глобальную инициализацию: import './jquery-global';
+1. `git clone https://github.com/your-username/your-repo-name.git`
+2. `cd your-repo-name`
+3. `npm install`
+4. `npm run dev`
 
-Используйте useRef для привязки к DOM-элементу.
+## ⌨️ Scripts and commands
 
-Отключайте проверку зависимостей eslint-disable-next-line react-hooks/exhaustive-deps для эффекта монтирования, чтобы плагин не пересоздавался при каждом рендере.
+- `npm run dev` — Runs a local development server (Vite HMR).
+- `npm run build` — Runs strict type checking (tsc) and builds the production version into `dist`.
+- `npm run preview` — Runs the built production version locally.
+- `npm run ts-check` — Runs type checking (tsc).
+- `npm run lint` — Runs code checks (ESLint).
+- `npm run format` — Runs formatting checks (Prettier).
+- `npm run test` — Runs tests (Vitest).
 
-Вместо пакета jquery-ui-dist мы используем модульный jquery-ui для точечного импорта нужных виджетов.
+## 🌐 Building and deploy
 
-4. Управление состоянием
-   Старая логика продолжает использовать ko.observable.
+The project is configured for maximum load performance:
 
-Новая логика на React использует глобальный стор Zustand.
-
-Синхронизация между ними (если нужна) происходит путем передачи данных из Zustand в качестве props через мост.
-
-🚦 Скрипты и Команды
-npm run dev — Запуск локального сервера разработки (Vite HMR).
-
-npm run build — Строгая проверка типов (tsc) и сборка production-версии.
-
-npm run preview — Локальный запуск собранной production-версии.
-
-npm run lint — Запуск проверки кода (ESLint).
-
-🛡 Инфраструктура и Git Hooks (Husky)
-В проекте настроен жесткий контроль качества кода перед коммитом:
-
-При попытке сделать git commit автоматически запускается Husky.
-
-lint-staged проверяет только измененные файлы.
-
-Prettier автоматически исправляет форматирование (пробелы, кавычки).
-
-ESLint проверяет код на ошибки типизации и нарушение правил React.
-Коммит будет отклонен, если в коде присутствуют неразрешенные TypeScript ошибки (например, неявный any).
-
-📦 Сборка и Кэширование (DevOps)
-Проект настроен на максимальную производительность при загрузке:
-
-Vendor Splitting: Vite автоматически разрезает сторонние зависимости на отдельные чанки (react-vendor, knockout-vendor, jquery-vendor).
-
-Кэширование: Все файлы в папке dist/assets/ имеют уникальные хэши в названиях. На сервере (Nginx) они кэшируются на 1 год (Cache-Control: immutable). Главный файл index.html не кэшируется никогда.
+- Vendor Splitting: Vite automatically splits third-party dependencies into separate chunks (react-vendor, knockout-vendor, jquery-vendor).
+- Caching: All files in the dist/assets/ folder have unique hashes in their names. On the server (Nginx), they are cached for 1 year (Cache-Control: immutable). The main index.html file is never cached.

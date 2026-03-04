@@ -19,6 +19,8 @@ export default defineConfig({
           // Параметр 'id' — это полный путь к каждому файлу, который проходит через сборщик.
           // Если файл лежит в папке node_modules, значит это сторонняя библиотека.
           if (id.includes('node_modules')) {
+            //return 'vendor'; // Все сторонние библиотеки по умолчанию в один чанк 'vendor'
+
             // 1. Выделяем ядро React и стейт-менеджер в чанк 'react-vendor'
             if (id.includes('react')) {
               return 'react-vendor';
