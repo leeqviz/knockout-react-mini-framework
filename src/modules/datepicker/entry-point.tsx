@@ -1,5 +1,5 @@
-import { ErrorBoundary } from "@/shared/react/components/error-boundary";
-import { TestDatepicker } from "./components/test-datepicker";
+import { ErrorBoundary } from '@/components/error-boundary';
+import { TestDatepicker } from './components/test-datepicker';
 
 export interface DatepickerEntryPointProps {
   date: string;

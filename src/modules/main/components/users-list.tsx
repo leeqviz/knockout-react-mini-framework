@@ -1,4 +1,4 @@
-import { useAppStore } from '@/stores/app';
+import { useAppStore } from '@/hooks/state-management';
 
 export function UsersList() {
   // Подписываемся на пользователей

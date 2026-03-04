@@ -1,9 +1,9 @@
-import { LazyLoadingFallback } from "@/shared/react/components/lazy-loading-fallback";
-import { lazy, Suspense } from "react";
-import type { MainEntryPointProps } from "./entry-point";
+import { LazyLoadingFallback } from '@/components/lazy-loading-fallback';
+import { lazy, Suspense } from 'react';
+import type { MainEntryPointProps } from './entry-point';
 
 const LazyMainEntryPoint = lazy(() =>
-  import("./entry-point").then((res) => ({
+  import('./entry-point').then((res) => ({
     default: res.MainEntryPoint,
   })),
 );

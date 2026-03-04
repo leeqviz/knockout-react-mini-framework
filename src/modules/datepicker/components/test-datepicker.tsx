@@ -1,5 +1,5 @@
 // 1. СНАЧАЛА инициализируем глобальный jQuery
-import '@/lib/jquery/global';
+import '@/lib/globals/jquery';
 
 // 2. ТОЛЬКО ПОТОМ загружаем плагин, теперь он найдет window.jQuery
 import $ from 'jquery'; // Подключаем родные стили jQuery UI

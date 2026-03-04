@@ -30,32 +30,40 @@ A hybrid web application that exemplifies the embedding of independent React com
 
 ## 🧩 Architecture
 
+A custom binding mechanism is used to render React components within an application written entirely in Knockout.js. Components are automatically unmounted when the node is removed from the DOM. To ensure the app loads as quickly as possible, all React widgets can be wrapped in lazy components before passing them to Knockout. Knockout.js uses `ko.observable` to subscribe to the global Zustand state. React uses the hooks to subscribe to the global Zustand store. Synchronization between them (if needed) occurs by passing data from Zustand as props via binding.
+
 ## 📜 Development guidelines
 
-1. Linking React and Knockout.js. A custom binding mechanism is used to render React components within an application written entirely in Knockout.js. Rule: Never use ReactDOM.createRoot directly in business logic. Always use binding. Components are automatically unmounted when the node is removed from the DOM.
+1. Linking React and Knockout.js. Rule: Never use ReactDOM.createRoot directly in business logic. Always use binding.
 
-2. Lazy Loading (Code Splitting). To ensure the app loads as quickly as possible, all heavy React widgets should be wrapped in lazy components before passing them to Knockout. Create a wrapper file: `[WidgetName].lazy.tsx` using `React.lazy` and `Suspense`. Import the lazy wrapper into the ViewModel, not the widget itself.
+2. Lazy Loading (Code Splitting). Create a wrapper file: `[WidgetName].lazy.tsx` using `React.lazy` and `Suspense`. Import the lazy wrapper into the ViewModel, not the widget itself.
 
-3. Working with jQuery within React. If you need to wrap an old jQuery plugin (for example, Datepicker) in a React component: Be sure to import global initialization: `import './jquery-global'`; Use `useRef` to bind to the DOM element to delegate rendering to jQuery and easily track changes in React.
-
-4. Global State Management. Knockout.js uses `ko.observable` to subscribe to the global Zustand state. React uses the hooks to subscribe to the global Zustand store. Synchronization between them (if needed) occurs by passing data from Zustand as props via binding.
+3. Working with jQuery within React. If you need to wrap a jQuery plugin (for example, Datepicker) in a React component: Be sure to import global initialization: `import './jquery-global'`; Use `useRef` to bind to the DOM element to delegate rendering to jQuery and easily track changes in React.
 
 ## 📂 Project structure
 
 ```text
-├── public/ # Статические файлы
+├── public/
 ├── src/
-│ ├── components/ # Изолированные React-компоненты
-│ ├── bindings/ # Кастомные биндинги Knockout (точка входа React)
-│ ├── store/ # Zustand-сторы
-│ ├── legacy/ # Старые Knockout-шаблоны и jQuery-скрипты
-│ ├── tests/ # Тесты Vitest
-│ ├── main.ts # Точка входа в приложение
-│ └── style.css # Глобальные стили (включая директивы Tailwind)
+│ ├── components/
+│ ├── lib/
+│ ├── modules/
+│ ├── stores/
+│ ├── tests/
+│ ├── types/
+│ ├── utils/
+│ ├── index.css
+│ └── index.ts
+├── .prettierrc
+├── eslint.config.js
+├── global.d.ts
+├── index.html
+├── nginx.conf
 ├── package.json
-├── tailwind.config.js # Конфигурация Tailwind CSS
+├── README.md
 ├── tsconfig.json
-└── vite.config.ts # Конфигурация сборщика и тестов
+├── vite.config.ts
+└── vitest.config.ts
 ```
 
 ## 🔧 Installation and setup

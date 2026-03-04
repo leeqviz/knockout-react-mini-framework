@@ -1,4 +1,4 @@
-import { ErrorBoundary } from '@/shared/react/components/error-boundary';
+import { ErrorBoundary } from '@/components/error-boundary';
 import { TestInput } from './components/test-input';
 import { UsersList } from './components/users-list';
 
