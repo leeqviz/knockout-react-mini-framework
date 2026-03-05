@@ -7,34 +7,41 @@
     <title>Knockout app</title>
   </head>
   <body>
-    <div class="knockout-app">
-      <h2>Knockout app</h2>
-      <p class="knockout-data">
-        Global date: <strong data-bind="text: globalDate"></strong>
-      </p>
-      <p>Global count: <strong data-bind="text: globalCount"></strong></p>
-      <input
-        data-bind="value: globalCount, valueUpdate: 'input'"
-        type="number"
-      />
-      <p>Global users:</p>
-      <ul data-bind="foreach: globalUsers">
-        <li data-bind="text: name"></li>
-      </ul>
+    <div id="root">
+      <div class="knockout-app">
+        <h2>Knockout app</h2>
+        <p class="knockout-data">
+          Global date: <strong data-bind="text: globalDate"></strong>
+        </p>
+        <p>Global count: <strong data-bind="text: globalCount"></strong></p>
+        <input
+          data-bind="value: globalCount, valueUpdate: 'input'"
+          type="number"
+        />
+        <p>Global users:</p>
+        <ul data-bind="foreach: globalUsers">
+          <li data-bind="text: name"></li>
+        </ul>
+      </div>
+      <!-- ko with: mainViewModel -->
+      <div
+        class="react-wrapper"
+        data-bind="reactMain: { 
+            component: $data.mainComponent, 
+            props: { count: $root.globalCount, setCount: $root.setGlobalCount } 
+        }"
+      ></div>
+      <!-- /ko -->
+      <!-- ko with: datepickerViewModel -->
+      <div
+        class="react-wrapper"
+        data-bind="reactDatepicker: { 
+            component: $data.datepickerComponent, 
+            props: { date: $root.globalDate, setDate: $root.setGlobalDate } 
+        }"
+      ></div>
+      <!-- /ko -->
     </div>
-    <br />
-    <div
-      data-bind="reactMain: { 
-            component: reactMainComponent, 
-            props: { count: globalCount, setCount: setGlobalCount } 
-        }"
-    ></div>
-    <div
-      data-bind="reactDatepicker: { 
-            component: reactDatepickerComponent, 
-            props: { date: globalDate, setDate: setGlobalDate } 
-        }"
-    ></div>
     <script type="module" src="/src/index.ts"></script>
   </body>
 </html>

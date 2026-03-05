@@ -1,13 +1,9 @@
-import {
-  DatepickerEntryPointLazy,
-  type DatepickerEntryPointProps,
-} from '@/modules/datepicker';
-import { MainEntryPointLazy, type MainEntryPointProps } from '@/modules/main';
 import { appStore } from '@/stores/app';
 import type { User } from '@/types/user';
 import { getCurrentISODate } from '@/utils/mappers/date';
 import ko from 'knockout';
-import type { ComponentType } from 'react';
+import { DatepickerViewModel } from './datepicker';
+import { MainViewModel } from './main';
 
 // ViewModel as a shell for the entire application
 export class AppViewModel {
@@ -17,8 +13,8 @@ export class AppViewModel {
   globalUsers: KnockoutObservableArray<User>;
 
   // Components we want to render inside Knockout templates
-  reactMainComponent: ComponentType<MainEntryPointProps>;
-  reactDatepickerComponent: ComponentType<DatepickerEntryPointProps>;
+  mainViewModel: MainViewModel;
+  datepickerViewModel: DatepickerViewModel;
 
   constructor() {
     // Initialize observables with default values
@@ -27,8 +23,8 @@ export class AppViewModel {
     this.globalUsers = ko.observableArray(appStore.getState().users);
 
     // Initialize components
-    this.reactMainComponent = MainEntryPointLazy;
-    this.reactDatepickerComponent = DatepickerEntryPointLazy;
+    this.mainViewModel = new MainViewModel();
+    this.datepickerViewModel = new DatepickerViewModel();
 
     // Subscribe to the app store to keep Knockout state in sync with React state
     appStore.subscribe((newState, prevState) => {
