@@ -17,6 +17,10 @@
         data-bind="value: globalCount, valueUpdate: 'input'"
         type="number"
       />
+      <p>Global users:</p>
+      <ul data-bind="foreach: globalUsers">
+        <li data-bind="text: name"></li>
+      </ul>
     </div>
     <br />
     <div

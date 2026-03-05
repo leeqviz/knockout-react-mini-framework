@@ -9,42 +9,36 @@ import { getCurrentISODate } from '@/utils/mappers/date';
 import ko from 'knockout';
 import type { ComponentType } from 'react';
 
-// Определяем ViewModel всего приложения
-// Привязываем react компонент и наблюдаемую переменную для счетчика, чтобы knockout имел к ним доступ
+// ViewModel as a shell for the entire application
 export class AppViewModel {
-  // Явно указываем, что это наблюдаемая переменная, хранящая число
+  // Observable global variables
   globalCount: KnockoutObservable<number>;
   globalDate: KnockoutObservable<string>;
+  globalUsers: KnockoutObservableArray<User>;
 
-  // Ссылка на компонент для использования в HTML
+  // Components we want to render inside Knockout templates
   reactMainComponent: ComponentType<MainEntryPointProps>;
   reactDatepickerComponent: ComponentType<DatepickerEntryPointProps>;
 
-  //zustand
-  users = ko.observableArray([] as User[]);
-
   constructor() {
-    // Создаем реактивную переменную со стартовым значением 0
+    // Initialize observables with default values
     this.globalCount = ko.observable<number>(0);
     this.globalDate = ko.observable<string>(getCurrentISODate());
-    // Делаем React-компонент частью ViewModel
+    this.globalUsers = ko.observableArray(appStore.getState().users);
+
+    // Initialize components
     this.reactMainComponent = MainEntryPointLazy;
     this.reactDatepickerComponent = DatepickerEntryPointLazy;
 
-    // 1. Берем начальные данные из стора
-    this.users(appStore.getState().users);
-
-    // 2. Подписываемся на любые изменения в сторе Zustand
+    // Subscribe to the app store to keep Knockout state in sync with React state
     appStore.subscribe((newState, prevState) => {
       if (newState.users !== prevState.users) {
-        // Если React (или кто-то еще) добавил юзера, обновляем Knockout!
-        this.users(newState.users);
+        // Update the Knockout observable array with the new users list from the store if it has changed outside of Knockout
+        this.globalUsers(newState.users);
       }
     });
   }
 
-  // Функция, которая будет вызываться при клике на кнопку внутри React-компонента, чтобы синхронизировать счетчик
-  // Стрелочная функция намертво привязывает контекст, чтобы внутри react компонента всегда был доступ к this.globalCount
   setGlobalCount = (value: number) => {
     this.globalCount(value);
   };
@@ -53,8 +47,7 @@ export class AppViewModel {
     this.globalDate(value);
   };
 
-  // Если Knockout хочет добавить юзера, он просто дергает метод стора
-  addUserFromKnockout() {
-    appStore.getState().addUser('Юзер из Knockout');
+  addGlobalUser() {
+    appStore.getState().addUser('New User');
   }
 }

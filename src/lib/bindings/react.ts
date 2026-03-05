@@ -15,44 +15,51 @@ export interface ReactBindingOptions {
 }
 
 export const reactBindingHandler: KnockoutBindingHandler = {
-  // 3. Инициализация биндинга: создаем корневой элемент React и обеспечиваем его очистку при удалении узла
-  // controlsDescendantBindings: true говорит Knockout, что внутри этого элемента мы будем управлять всем рендерингом, и он не должен пытаться обрабатывать дочерние элементы
-  // Данный метод вызывается один раз при связывании элемента с данным биндингом и позволяет нам подготовить элемент для рендеринга React-компонента
+  // This method is called when the binding is first applied to an element. It sets up the React root and ensures cleanup when the element is removed.
   init: function (element: ReactRootHTMLElement) {
-    // 1. Создаем корень React на данном элементе и сохраняем его в специальном свойстве, чтобы потом иметь к нему доступ для рендеринга и очистки
+    // Create a React root and store it on the DOM element for later use in updates and cleanup
     element._reactRoot = createRoot(element);
 
-    // 2. Уборка мусора (Предотвращение утечек памяти)
-    // Может быть удобно в случае, если нужно условно рендерить разные React компоненты в зависимости от состояния Knockout, но при этом гарантировать, что старые компоненты будут корректно удалены и не будут занимать память
+    // Prevents possible memory leaks by unmounting the React component when the DOM node is removed by Knockout
     ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
-      if (element._reactRoot) element._reactRoot.unmount();
+      if (element._reactRoot) {
+        element._reactRoot.unmount();
+        Reflect.deleteProperty(element, '_reactRoot');
+      } else {
+        console.warn(
+          'Attempted to unmount React root, but it was not found on element:',
+          element,
+        );
+      }
     });
 
+    // Prevents Knockout from control binding descendants of this element, since React will be managing the entire subtree
     return { controlsDescendantBindings: true };
   },
 
-  // 4. Обновление биндинга: рендерим React-компонент с новыми пропсами при каждом изменении наблюдаемых переменных. Функция valueAccessor возвращает то, что написано в HTML (наш объект с component и props). Мы пропускаем его через ko.unwrap(), на случай если сам конфигурационный объект тоже оказался реактивным.
+  // Render React component with new props whenever the observable changes
   update: function (
     element: ReactRootHTMLElement,
-    valueAccessor: () => ReactBindingOptions, // possibly any value
+    valueAccessor: () => ReactBindingOptions,
   ) {
-    // 1. Получаем конфигурацию биндинга, которая включает в себя React-компонент и его пропсы. Мы используем ko.unwrap, чтобы получить чистые значения, даже если они были определены как наблюдаемые переменные в Knockout
-    const options = ko.unwrap(valueAccessor());
+    // Unwrap binding configuration
+    const { component, props, deepUnwrap } = ko.unwrap(valueAccessor());
 
-    // 2. Распаковываем пропсы, чтобы получить чистые данные без реактивных оберток Knockout. Это позволяет нам передавать в React-компонент обычные значения, даже если они были определены как наблюдаемые переменные в Knockout
-    const reactProps: Record<string, unknown> = {};
-    if (options.props) {
-      for (const key in options.props) {
-        // глубокий unwrap для вложенных объектов, чтобы React получал чистые данные без реактивных оберток Knockout
-        reactProps[key] = options.deepUnwrap
-          ? ko.toJS(options.props[key])
-          : ko.unwrap(options.props[key]);
+    const cleanProps: Record<string, unknown> = {};
+    // Deep unwrap allows us to pass complex nested structures (like objects or arrays) as clean props without keeping Knockout reactivity logic inside them
+    if (props) {
+      for (const key in props) {
+        cleanProps[key] = deepUnwrap
+          ? ko.toJS(props[key])
+          : ko.unwrap(props[key]);
       }
     }
 
-    // 3. Рендерим компонент React внутри нашего элемента, используя ранее созданный корневой элемент. Мы передаем в компонент все распакованные пропсы, что позволяет ему корректно реагировать на изменения данных из Knockout. Здесь нельзя использовать JSX, поэтому мы используем createElement для создания элемента React и передаем ему все необходимые пропсы
-    if (element && element._reactRoot && options.component) {
-      element._reactRoot.render(createElement(options.component, reactProps));
+    // Attempt to render the React component with the new props
+    if (element._reactRoot && component) {
+      element._reactRoot.render(createElement(component, cleanProps));
+    } else {
+      console.warn('React component or root not found for element:', element);
     }
   },
 };

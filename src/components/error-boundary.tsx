@@ -13,14 +13,13 @@ export class ErrorBoundary extends Component<
   override state = { hasError: false };
 
   static getDerivedStateFromError() {
-    // Если произошла ошибка, меняем стейт, чтобы показать запасной UI
     return { hasError: true };
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo) {
-    // В энтерпрайзе здесь отправляют ошибку в Sentry, Datadog или другой логгер
+    // Logging
     console.error(
-      `[React Bridge] Ошибка в компоненте ${this.props.name || 'Unknown'}:`,
+      `[React Bridge] Error in component ${this.props.name || 'Unknown'}:`,
       error,
       info,
     );
@@ -40,12 +39,12 @@ export class ErrorBoundary extends Component<
               borderRadius: '4px',
             }}
           >
-            ⚠️ Не удалось загрузить модуль <b>{this.props.name}</b>.
+            ⚠️ Error in <b>{this.props.name}</b>.
             <button
               onClick={() => this.setState({ hasError: false })}
               style={{ marginLeft: '10px' }}
             >
-              Попробовать снова
+              Try again
             </button>
           </div>
         );

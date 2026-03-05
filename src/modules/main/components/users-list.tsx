@@ -10,7 +10,7 @@ export function UsersList() {
         <div key={u.id}>{u.name}</div>
       ))}
       <button
-        className="border border-blue-500"
+        className="border border-blue-500 rounded px-2 py-1 bg-red-300"
         onClick={() => addUser('New User')}
       >
         Add user
