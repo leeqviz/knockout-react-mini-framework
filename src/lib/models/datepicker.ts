@@ -3,11 +3,17 @@ import {
   type DatepickerEntryPointProps,
 } from '@/modules/datepicker';
 import type { ComponentType } from 'react';
+import type { AppViewModel } from './app';
 
 export class DatepickerViewModel {
-  datepickerComponent: ComponentType<DatepickerEntryPointProps>;
+  public props: DatepickerEntryPointProps;
+  public component: ComponentType<DatepickerEntryPointProps>;
 
-  constructor() {
-    this.datepickerComponent = DatepickerEntryPointLazy;
+  constructor(params: { globals: AppViewModel }) {
+    this.props = {
+      date: params.globals.globalDate(),
+      setDate: params.globals.setGlobalDate,
+    };
+    this.component = DatepickerEntryPointLazy;
   }
 }

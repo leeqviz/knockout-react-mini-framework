@@ -1,6 +1,8 @@
 import ko from 'knockout';
 import './index.css';
 import { reactBindingHandler } from './lib/bindings/react';
+import './lib/components/datepicker';
+import './lib/components/main';
 import { AppViewModel } from './lib/models/app';
 
 const rootElement = document.getElementById('root');

@@ -23,24 +23,16 @@
           <li data-bind="text: name"></li>
         </ul>
       </div>
-      <!-- ko with: mainViewModel -->
-      <div
-        class="react-wrapper"
-        data-bind="reactMain: { 
-            component: $data.mainComponent, 
-            props: { count: $root.globalCount, setCount: $root.setGlobalCount } 
-        }"
-      ></div>
-      <!-- /ko -->
-      <!-- ko with: datepickerViewModel -->
-      <div
-        class="react-wrapper"
-        data-bind="reactDatepicker: { 
-            component: $data.datepickerComponent, 
-            props: { date: $root.globalDate, setDate: $root.setGlobalDate } 
-        }"
-      ></div>
-      <!-- /ko -->
+      <main-widget
+        id="main-widget"
+        class="react-widget"
+        params="{ globals: $root }"
+      ></main-widget>
+      <datepicker-widget
+        id="datepicker-widget"
+        class="react-widget"
+        params="{ globals: $root }"
+      ></datepicker-widget>
     </div>
     <script type="module" src="/src/index.ts"></script>
   </body>
