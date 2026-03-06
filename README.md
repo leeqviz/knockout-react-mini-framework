@@ -45,9 +45,7 @@ A custom binding mechanism is used to render React components within an applicat
 ```text
 ├── public/
 ├── src/
-│ ├── components/ # shared React components
-│ ├── hooks/ # shared React hooks
-│ ├── lib/ # binding logic and view models for Knockout.js
+│ ├── lib/ # business logic and shared logic
 │ ├── modules/ # independent React modules
 │ ├── stores/
 │ ├── tests/
@@ -57,7 +55,7 @@ A custom binding mechanism is used to render React components within an applicat
 │ └── index.ts
 ├── .prettierrc
 ├── eslint.config.js
-├── global.d.ts
+├── app.d.ts
 ├── index.html
 ├── nginx.conf
 ├── package.json
