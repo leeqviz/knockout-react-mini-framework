@@ -3,12 +3,11 @@ import ko from 'knockout';
 export const lazyComponentLoader: KnockoutComponentTypes.Loader = {
   loadComponent: function (name, componentConfig, callback) {
     if (!componentConfig.lazy) {
-      // It is not a lazy component
-      callback(null);
+      callback(null); // let the default loader do its job
       return;
     }
 
-    // Resolve lazy component
+    // Resolving lazy component
     componentConfig
       .lazy()
       .then((module) => {
@@ -17,7 +16,7 @@ export const lazyComponentLoader: KnockoutComponentTypes.Loader = {
           callback(null);
           return;
         }
-        // Отдаем стандартному загрузчику Knockout для финальной сборки
+        // let the default loader do its job
         ko.components.defaultLoader.loadComponent?.(
           name,
           module.default,
@@ -25,8 +24,9 @@ export const lazyComponentLoader: KnockoutComponentTypes.Loader = {
         );
       })
       .catch((err: unknown) => {
-        console.error(`Ошибка загрузки компонента ${name}:`, err);
+        console.error(`Error loading lazy component ${name}:`, err);
         callback(null);
+        return;
       });
   },
 };
