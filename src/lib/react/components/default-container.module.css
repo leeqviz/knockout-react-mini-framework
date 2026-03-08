@@ -1,26 +1,16 @@
-.container {
+.main-container {
   border: 2px solid #61dafb;
   padding: 15px;
   border-radius: 8px;
   background-color: #f0fdf4;
   max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .title {
   margin: 0 0 10px 0;
   color: #15803d;
   font-family: sans-serif;
-}
-
-.button {
-  background-color: #16a34a;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.button:hover {
-  background-color: #15803d;
 }

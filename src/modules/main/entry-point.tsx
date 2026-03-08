@@ -1,6 +1,5 @@
 import { ErrorBoundary } from '@/lib/react/components/error-boundary';
-import { TestInput } from './components/test-input';
-import { UsersList } from './components/users-list';
+import { MainContainer } from './components/main-container';
 
 export interface MainEntryPointProps {
   count: number;
@@ -10,8 +9,7 @@ export interface MainEntryPointProps {
 export function MainEntryPoint({ count, setCount }: MainEntryPointProps) {
   return (
     <ErrorBoundary name="Main Module">
-      <TestInput count={count} setCount={setCount} />
-      <UsersList />
+      <MainContainer count={count} setCount={setCount} />
     </ErrorBoundary>
   );
 }

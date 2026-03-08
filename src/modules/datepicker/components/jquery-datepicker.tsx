@@ -5,14 +5,15 @@ import 'jquery-ui/themes/base/core.css';
 import 'jquery-ui/themes/base/datepicker.css';
 import 'jquery-ui/themes/base/theme.css';
 import 'jquery-ui/ui/widgets/datepicker';
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 
-interface TestDatepickerProps {
+interface JqueryDatepickerProps {
   date: string;
   setDate: (newDate: string) => void;
 }
 
-export function TestDatepicker({ date, setDate }: TestDatepickerProps) {
+export function JqueryDatepicker({ date, setDate }: JqueryDatepickerProps) {
+  const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -46,12 +47,13 @@ export function TestDatepicker({ date, setDate }: TestDatepickerProps) {
   return (
     <div style={{ marginTop: '10px' }}>
       <label
-        htmlFor="datepicker"
+        htmlFor={id}
         style={{ display: 'block', fontSize: '12px', color: '#666' }}
       >
         jQuery Datepicker:
       </label>
       <input
+        id={id}
         ref={inputRef}
         type="text"
         readOnly

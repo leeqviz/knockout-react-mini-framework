@@ -91,7 +91,7 @@ export class AppViewModel {
   }
 
   public addGlobalUser() {
-    appStore.getState().addUser('New User');
+    appStore.getState().addUser('Knockout User');
   }
 
   private handlePopState() {

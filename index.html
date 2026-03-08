@@ -8,10 +8,14 @@
   </head>
   <body>
     <div id="root">
-      <a href="/" data-bind="router: true">Home</a>
-      <a href="/test/42" data-bind="router: true">Test</a>
+      <nav>
+        <a href="/" data-bind="router: true">Home</a>
+        <a href="/test/42" data-bind="router: true">Test</a>
+        <button data-bind="click: () => navigate('/test/99')">
+          Test button
+        </button>
+      </nav>
 
-      <button data-bind="click: () => navigate('/test/99')">Test button</button>
       <div class="knockout-app">
         <h2>Knockout app</h2>
         <p class="knockout-data">
@@ -19,6 +23,7 @@
         </p>
         <p>Global count: <strong data-bind="text: globalCount"></strong></p>
         <input
+          id="global-count"
           data-bind="value: globalCount, valueUpdate: 'input'"
           type="number"
         />
@@ -26,22 +31,34 @@
         <ul data-bind="foreach: globalUsers">
           <li data-bind="text: name"></li>
         </ul>
+        <button data-bind="click: addGlobalUser()">Add user</button>
         <p>Computed result: <strong data-bind="text: result"></strong></p>
       </div>
-      <main
-        data-bind="component: {
+
+      <div>
+        <h2>Navigated React app</h2>
+        <p>
+          Current page: <strong data-bind="text: currentPageComponent"></strong>
+        </p>
+        <main
+          data-bind="component: {
         name: currentPageComponent,
         params: { globals: $root, route: currentRouteParams }
       }"
-      ></main>
-      <main-lazy-component
-        class="react-component"
-        params="{ globals: $root }"
-      ></main-lazy-component>
-      <datepicker-lazy-component
-        class="react-component"
-        params="{ globals: $root }"
-      ></datepicker-lazy-component>
+        ></main>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 20px">
+        <h2>Lazy components</h2>
+        <main-lazy-component
+          class="react-component"
+          params="{ globals: $root }"
+        ></main-lazy-component>
+        <datepicker-lazy-component
+          class="react-component"
+          params="{ globals: $root }"
+        ></datepicker-lazy-component>
+      </div>
     </div>
     <script type="module" src="/src/index.ts"></script>
   </body>

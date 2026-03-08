@@ -1,5 +1,5 @@
 import { ErrorBoundary } from '@/lib/react/components/error-boundary';
-import { TestDatepicker } from './components/test-datepicker';
+import { DatepickerContainer } from './components/datepicker-container';
 
 export interface DatepickerEntryPointProps {
   date: string;
@@ -15,7 +15,7 @@ export function DatepickerEntryPoint({
   console.log('DatepickerEntryPoint url params: ', route);
   return (
     <ErrorBoundary name="Datepicker Module">
-      <TestDatepicker date={date} setDate={setDate} />
+      <DatepickerContainer date={date} setDate={setDate} />
     </ErrorBoundary>
   );
 }

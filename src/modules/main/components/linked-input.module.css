@@ -1,0 +1,15 @@
+.label {
+  margin-left: 8px;
+  font-style: italic;
+}
+
+.input {
+  border: 1px solid #c7ccc9;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.input:hover {
+  background-color: #e8eae9;
+}
