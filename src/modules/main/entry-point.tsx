@@ -1,15 +1,19 @@
 import { ErrorBoundary } from '@/lib/react/components/error-boundary';
+import type { RouterContextValue } from '@/lib/react/components/router-context';
+import { RouterProvider } from '@/lib/react/components/router-provider';
 import { MainContainer } from './components/main-container';
 
 export interface MainEntryPointProps {
-  count: number;
-  setCount: (value: number) => void;
+  router: RouterContextValue | null;
 }
 
-export function MainEntryPoint({ count, setCount }: MainEntryPointProps) {
+export function MainEntryPoint({ router }: MainEntryPointProps) {
+  console.log('MainEntryPoint router: ', router);
   return (
     <ErrorBoundary name="Main Module">
-      <MainContainer count={count} setCount={setCount} />
+      <RouterProvider value={router}>
+        <MainContainer />
+      </RouterProvider>
     </ErrorBoundary>
   );
 }

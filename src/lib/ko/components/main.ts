@@ -8,7 +8,7 @@ export const mainComponent: KnockoutComponentTypes.Config<
     <div
         data-bind="reactMain: { 
             component, 
-            props
+            props: computedProps()
         }"
       ></div>
     `,

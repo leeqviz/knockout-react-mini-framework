@@ -3,6 +3,7 @@ import { reactBindingHandler } from './bindings/react';
 import { routerBindingHandler } from './bindings/router';
 import { datepickerComponent } from './components/datepicker';
 import { mainComponent } from './components/main';
+import { notFoundComponent } from './components/not-found';
 import { localStorageSync } from './extenders/local-storage-sync';
 import { storeSync } from './extenders/store-sync';
 import { lazyComponentLoader } from './loaders/lazy-component';
@@ -19,6 +20,7 @@ ko.extenders.localStorageSync = localStorageSync;
 ko.components.loaders.unshift(lazyComponentLoader);
 
 // apply custom knockout components
+ko.components.register('not-found-component', notFoundComponent);
 ko.components.register('main-component', mainComponent);
 ko.components.register('datepicker-component', datepickerComponent);
 ko.components.register('main-lazy-component', {

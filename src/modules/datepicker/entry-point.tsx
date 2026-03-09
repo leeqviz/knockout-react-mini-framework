@@ -1,21 +1,18 @@
 import { ErrorBoundary } from '@/lib/react/components/error-boundary';
+import type { RouterContextValue } from '@/lib/react/components/router-context';
+import { RouterProvider } from '@/lib/react/components/router-provider';
 import { DatepickerContainer } from './components/datepicker-container';
 
 export interface DatepickerEntryPointProps {
-  date: string;
-  setDate: (newDate: string) => void;
-  route: unknown;
+  router: RouterContextValue | null;
 }
 
-export function DatepickerEntryPoint({
-  date,
-  setDate,
-  route,
-}: DatepickerEntryPointProps) {
-  console.log('DatepickerEntryPoint url params: ', route);
+export function DatepickerEntryPoint({ router }: DatepickerEntryPointProps) {
   return (
     <ErrorBoundary name="Datepicker Module">
-      <DatepickerContainer date={date} setDate={setDate} />
+      <RouterProvider value={router}>
+        <DatepickerContainer />
+      </RouterProvider>
     </ErrorBoundary>
   );
 }

@@ -1,13 +1,12 @@
+import { useAppStore } from '@/lib/react/hooks/state-management';
 import { useId } from 'react';
 import styles from './linked-input.module.css';
 
-interface LinkedInputProps {
-  count: number;
-  setCount: (value: number) => void;
-}
-
-export function LinkedInput({ count, setCount }: LinkedInputProps) {
+export function LinkedInput() {
   const id = useId();
+
+  const count = useAppStore((state) => state.count);
+  const setCount = useAppStore((state) => state.setCount);
 
   return (
     <div className="flex flex-col gap-0.5">

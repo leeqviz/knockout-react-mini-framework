@@ -8,7 +8,7 @@ export const datepickerComponent: KnockoutComponentTypes.Config<
     <div
         data-bind="reactDatepicker: { 
             component, 
-            props
+            props: computedProps()
         }"
       ></div>
     `,

@@ -3,15 +3,7 @@ import { DefaultContainer } from '@/lib/react/components/default-container';
 import { useEffect } from 'react';
 import { JqueryDatepicker } from './jquery-datepicker';
 
-interface DatepickerContainerProps {
-  date: string;
-  setDate: (newDate: string) => void;
-}
-
-export function DatepickerContainer({
-  date,
-  setDate,
-}: DatepickerContainerProps) {
+export function DatepickerContainer() {
   useEffect(() => {
     appEventBus.publish('REACT_COMPONENT_READY', { componentId: 'datepicker' });
 
@@ -22,7 +14,7 @@ export function DatepickerContainer({
 
   return (
     <DefaultContainer moduleName="Datepicker module">
-      <JqueryDatepicker date={date} setDate={setDate} />
+      <JqueryDatepicker />
     </DefaultContainer>
   );
 }

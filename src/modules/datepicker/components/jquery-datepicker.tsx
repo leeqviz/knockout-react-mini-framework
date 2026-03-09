@@ -1,4 +1,5 @@
 import '@/lib/jquery/globals';
+import { useAppStore } from '@/lib/react/hooks/state-management';
 // important
 import $ from 'jquery';
 import 'jquery-ui/themes/base/core.css';
@@ -7,13 +8,12 @@ import 'jquery-ui/themes/base/theme.css';
 import 'jquery-ui/ui/widgets/datepicker';
 import { useEffect, useId, useRef } from 'react';
 
-interface JqueryDatepickerProps {
-  date: string;
-  setDate: (newDate: string) => void;
-}
-
-export function JqueryDatepicker({ date, setDate }: JqueryDatepickerProps) {
+export function JqueryDatepicker() {
   const id = useId();
+
+  const date = useAppStore((state) => state.date);
+  const setDate = useAppStore((state) => state.setDate);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import type { StoreSyncConfig } from '../globals';
+import type { StoreSyncConfig } from '@/lib/ko/globals';
 
 export function storeSync<TState, TSlice>(
   target: KnockoutObservable<TSlice>,
