@@ -2,15 +2,19 @@ import { appEventBus, type ApplicationEventMap } from '@/lib/ko/event-bus';
 import { appStore, type AppState } from '@/stores/app';
 import type { User } from '@/types/user';
 import ko from 'knockout';
+import type {
+  KnockoutObservableArrayWithDispose,
+  KnockoutObservableWithDispose,
+} from '../globals';
 import { appRouter, type ApplicationRouter } from '../router';
 
 // ViewModel as a shell for the entire application
 export class AppViewModel {
   // Observable global variables
-  public count: KnockoutObservable<number> & { dispose?: () => void };
-  public date: KnockoutObservable<string> & { dispose?: () => void };
-  public users: KnockoutObservableArray<User> & { dispose?: () => void };
-  public theme: KnockoutObservable<'light' | 'dark'> & { dispose?: () => void };
+  public count: KnockoutObservableWithDispose<number>;
+  public date: KnockoutObservableWithDispose<string>;
+  public users: KnockoutObservableArrayWithDispose<User>;
+  public theme: KnockoutObservableWithDispose<'light' | 'dark'>;
   public result: KnockoutComputed<string>;
 
   private eventSubscription: KnockoutSubscription;
@@ -42,6 +46,15 @@ export class AppViewModel {
       },
     });
 
+    this.theme = ko.observable(appStore.getState().theme).extend({
+      storeSync: {
+        store: appStore,
+        selector: (state: AppState) => state.theme,
+        setter: (newTheme: 'light' | 'dark') =>
+          appStore.getState().setTheme(newTheme),
+      },
+    });
+
     // Subscribe to the event from react
     this.eventSubscription = appEventBus.subscribe(
       'REACT_COMPONENT_READY',
@@ -52,15 +65,6 @@ export class AppViewModel {
 
     // Pure Computed observable is better than computed observable
     this.result = ko.pureComputed(() => this.count() + ' ' + this.date());
-
-    this.theme = ko.observable(appStore.getState().theme).extend({
-      storeSync: {
-        store: appStore,
-        selector: (state: AppState) => state.theme,
-        setter: (newTheme: 'light' | 'dark') =>
-          appStore.getState().setTheme(newTheme),
-      },
-    });
 
     // Important because we can put these methods in react components as props
     this.setCount = this.setCount.bind(this);

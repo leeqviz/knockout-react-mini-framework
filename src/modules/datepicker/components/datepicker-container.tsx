@@ -7,9 +7,7 @@ export function DatepickerContainer() {
   useEffect(() => {
     appEventBus.publish('REACT_COMPONENT_READY', { componentId: 'datepicker' });
 
-    return () => {
-      //subscription.dispose();
-    };
+    return () => {};
   }, []);
 
   return (

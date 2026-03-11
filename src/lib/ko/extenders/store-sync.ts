@@ -1,9 +1,17 @@
-import type { StoreSyncConfig } from '@/lib/ko/globals';
+import type {
+  KnockoutObservableArrayWithDispose,
+  KnockoutObservableWithDispose,
+  StoreSyncConfig,
+} from '@/lib/ko/globals';
 
 export function storeSync<TState, TSlice>(
-  target: KnockoutObservable<TSlice>,
+  target:
+    | KnockoutObservableWithDispose<TSlice>
+    | KnockoutObservableArrayWithDispose<TSlice>,
   options: StoreSyncConfig<TState, TSlice>,
-): KnockoutObservable<TSlice> & { dispose: () => void } {
+):
+  | KnockoutObservableWithDispose<TSlice>
+  | KnockoutObservableArrayWithDispose<TSlice> {
   const { store, selector, setter } = options;
 
   let isSynchronizing = false;
@@ -28,31 +36,37 @@ export function storeSync<TState, TSlice>(
   });
 
   // Knockout -> Zustand
-  const subscription = target.subscribe((newValue: TSlice) => {
-    if (isSynchronizing) {
-      return;
-    }
-
-    const currentState = store.getState();
-    const currentSliceValue = selector(currentState);
-
-    if (JSON.stringify(newValue) !== JSON.stringify(currentSliceValue)) {
-      if (setter) {
-        const stateUpdate = setter(newValue);
-        if (stateUpdate) {
-          store.setState(stateUpdate);
-        }
-      } else {
-        console.warn(' Mutated read-only observable without a setter.', target);
+  const subscription = target.subscribe(
+    (newValue: TSlice) => {
+      if (isSynchronizing) {
+        return;
       }
-    }
-  });
 
-  (target as KnockoutObservable<TSlice> & { dispose: () => void }).dispose =
-    function () {
-      unsubscribe();
-      subscription.dispose();
-    };
+      const currentState = store.getState();
+      const currentSliceValue = selector(currentState);
 
-  return target as KnockoutObservable<TSlice> & { dispose: () => void };
+      if (JSON.stringify(newValue) !== JSON.stringify(currentSliceValue)) {
+        if (setter) {
+          const stateUpdate = setter(newValue);
+          if (stateUpdate) {
+            store.setState(stateUpdate);
+          }
+        } else {
+          console.warn(
+            ' Mutated read-only observable without a setter.',
+            target,
+          );
+        }
+      }
+    },
+    null,
+    'change',
+  );
+
+  target.dispose = function () {
+    unsubscribe();
+    subscription.dispose();
+  };
+
+  return target;
 }

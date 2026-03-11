@@ -12,20 +12,30 @@ export interface StoreSyncArrayConfig<TState, TSlice> {
   setter?: ((newValue: TSlice[]) => Partial<TState> | void) | undefined;
 }
 
+export type KnockoutObservableWithDispose<T> = KnockoutObservable<T> & {
+  dispose?: () => void;
+};
+export type KnockoutObservableArrayWithDispose<T> =
+  KnockoutObservableArray<T> & {
+    dispose?: () => void;
+  };
+
 declare global {
   interface KnockoutExtenders {
     localStorageSync<T>(
-      target: KnockoutObservable<T>,
+      target:
+        | KnockoutObservableWithDispose<T>
+        | KnockoutObservableArrayWithDispose<T>,
       key: string,
-    ): KnockoutObservable<T>;
+    ): KnockoutObservableWithDispose<T> | KnockoutObservableArrayWithDispose<T>;
     storeSync<TState, TSlice>(
-      target: KnockoutObservable<TSlice>,
+      target:
+        | KnockoutObservableWithDispose<TSlice>
+        | KnockoutObservableArrayWithDispose<TSlice>,
       options: StoreSyncConfig<TState, TSlice>,
-    ): KnockoutObservable<TSlice>;
-    storeSyncArray<TState, TSlice>(
-      target: KnockoutObservableArray<TSlice>,
-      options: StoreSyncArrayConfig<TState, TSlice>,
-    ): KnockoutObservableArray<TSlice>;
+    ):
+      | KnockoutObservableWithDispose<TSlice>
+      | KnockoutObservableArrayWithDispose<TSlice>;
   }
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace KnockoutComponentTypes {

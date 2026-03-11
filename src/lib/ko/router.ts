@@ -86,28 +86,25 @@ export class ApplicationRouter {
     for (const route of this.routes) {
       const paramNames: string[] = [];
 
-      // Превращаем шаблон '/users/:userId' в регулярку '^\/users\/([a-zA-Z0-9_-]+)$'
       const regexPattern = route.pattern
         .replace(/:([^\\/]+)/g, (_, paramName) => {
-          paramNames.push(paramName); // Запоминаем имя параметра ('userId')
-          return '([a-zA-Z0-9_-]+)'; // Регулярка для захвата самого значения
+          paramNames.push(paramName);
+          return '([a-zA-Z0-9_-]+)';
         })
-        .replace(/\//g, '\\/'); // Экранируем обычные слэши для Regex
+        .replace(/\//g, '\\/');
 
       const regex = new RegExp(`^${regexPattern}$`);
       const match = normalizedPath.match(regex);
 
       if (match) {
         if (route.protected) {
-          // Синхронно читаем статус прямо из Zustand
           const isAuth = appStore.getState().isAuth;
 
           if (!isAuth) {
             console.warn(
-              `Доступ к ${fullPath} запрещен. Перенаправление на логин.`,
+              `Access to ${fullPath} is denied, user is not authenticated`,
             );
 
-            // Перенаправляем на /login и сохраняем исходный URL в query-параметрах
             const redirectUrl = encodeURIComponent(fullPath);
             this.navigate(`/login?redirectTo=${redirectUrl}`);
 
@@ -115,10 +112,8 @@ export class ApplicationRouter {
           }
         }
 
-        // Если маршрут совпал, извлекаем значения (match[0] - это вся строка, значения идут с 1)
         const paramValues = match.slice(1);
 
-        // Собираем динамические параметры в объект: { userId: '42' }
         const dynamicParams = paramNames.reduce(
           (acc, name, index) => {
             acc[name] = paramValues[index] || '';
@@ -127,13 +122,11 @@ export class ApplicationRouter {
           {} as Record<string, string>,
         );
 
-        // 4. МАГИЯ ЗДЕСЬ: Объединяем оба объекта параметров!
         const allParams = { ...queryParams, ...dynamicParams };
 
-        // Обновляем состояние Knockout
         this.currentComponent(route.component);
         this.currentParams(allParams);
-        return; // Маршрут найден, выходим из функции
+        return;
       }
     }
 

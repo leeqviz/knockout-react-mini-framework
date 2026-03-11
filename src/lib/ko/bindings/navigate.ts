@@ -5,7 +5,7 @@ export const navigateBindingHandler: KnockoutBindingHandler = {
   init: function (element: HTMLElement, valueAccessor: () => string) {
     function onClick(e: MouseEvent) {
       e.preventDefault();
-      // get path from binding
+
       const path = ko.unwrap(valueAccessor());
 
       if (path) {

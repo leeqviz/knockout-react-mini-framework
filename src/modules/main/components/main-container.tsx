@@ -12,9 +12,7 @@ export function MainContainer() {
   useEffect(() => {
     appEventBus.publish('REACT_COMPONENT_READY', { componentId: 'main' });
 
-    return () => {
-      //subscription.dispose();
-    };
+    return () => {};
   }, []);
 
   return (

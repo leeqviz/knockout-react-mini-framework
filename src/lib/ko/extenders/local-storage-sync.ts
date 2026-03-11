@@ -1,7 +1,14 @@
+import type {
+  KnockoutObservableArrayWithDispose,
+  KnockoutObservableWithDispose,
+} from '../globals';
+
 export function localStorageSync<T>(
-  target: KnockoutObservable<T>,
+  target:
+    | KnockoutObservableWithDispose<T>
+    | KnockoutObservableArrayWithDispose<T>,
   key: string,
-) {
+): KnockoutObservableWithDispose<T> | KnockoutObservableArrayWithDispose<T> {
   const value = localStorage.getItem(key);
 
   if (value !== null) {
@@ -12,9 +19,18 @@ export function localStorageSync<T>(
     }
   }
 
-  target.subscribe(function (newValue: T) {
-    localStorage.setItem(key, JSON.stringify(newValue));
-  });
+  const subscription = target.subscribe(
+    function (newValue: T) {
+      localStorage.setItem(key, JSON.stringify(newValue));
+    },
+    null,
+    'change',
+  );
+
+  target.dispose = function () {
+    localStorage.removeItem(key);
+    subscription.dispose();
+  };
 
   return target;
 }
