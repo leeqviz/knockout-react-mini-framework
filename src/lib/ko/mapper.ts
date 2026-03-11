@@ -1,17 +1,17 @@
 import type { RouterContextValue } from '@/lib/react/contexts/routing';
-import type { AppViewModel } from './models/app';
+import { appRouter } from './router';
 
-export function mapRouterData(appViewModel: AppViewModel): RouterContextValue {
+export function mapRouterData(): RouterContextValue {
   return {
     navigate: (path: string, options?: { replace?: boolean | undefined }) =>
-      appViewModel.navigate(path, options),
-    params: appViewModel.currentRouteParams(),
+      appRouter.navigate(path, options),
+    params: appRouter.currentParams(),
     location: {
-      pathname: appViewModel.currentPathname(),
-      search: appViewModel.currentSearch(),
+      pathname: appRouter.currentPathname(),
+      search: appRouter.currentSearch(),
     },
     setSearchParams: (newParams: Record<string, string>) => {
-      appViewModel.setSearchParams(newParams);
+      appRouter.setSearchParams(newParams);
     },
   };
 }

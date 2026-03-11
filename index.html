@@ -9,24 +9,22 @@
   <body>
     <div id="root">
       <nav>
-        <a href="/" data-bind="router: true">Home</a>
-        <a href="/test" data-bind="router: true">Test</a>
-        <button data-bind="click: () => navigate('/test/99')">
-          Test button
-        </button>
+        <a href="/" data-bind="link: true">Home</a>
+        <a href="/test" data-bind="link: true">Test</a>
+        <button data-bind="navigate: '/test/99'">Test button</button>
         <div>
           <h2>Navigated React app</h2>
           <p>
             Current page:
-            <strong data-bind="text: currentPageComponent"></strong>
+            <strong data-bind="text: appRouter.currentComponent"></strong>
           </p>
         </div>
       </nav>
 
       <main
         data-bind="component: {
-            name: currentPageComponent,
-            params: { globals: $root }
+            name: appRouter.currentComponent,
+            params: { withRouter: true }
           }"
       ></main>
 
@@ -53,11 +51,11 @@
         <h2>Lazy components</h2>
         <main-lazy-component
           class="react-component"
-          params="{ globals: $root }"
+          params="{ withRouter: true }"
         ></main-lazy-component>
         <datepicker-lazy-component
           class="react-component"
-          params="{ globals: $root }"
+          params="{ withRouter: true }"
         ></datepicker-lazy-component>
         <div class="react-component"></div>
       </div>

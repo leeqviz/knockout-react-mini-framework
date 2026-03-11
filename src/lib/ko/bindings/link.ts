@@ -1,13 +1,8 @@
 import ko from 'knockout';
+import { appRouter } from '../router';
 
-export const routerBindingHandler: KnockoutBindingHandler = {
-  init: function (
-    element: HTMLElement,
-    _valueAccessor,
-    _allBindings,
-    _viewModel,
-    bindingContext,
-  ) {
+export const linkBindingHandler: KnockoutBindingHandler = {
+  init: function (element: HTMLElement) {
     function onClick(e: MouseEvent) {
       // cancel default behavior
       e.preventDefault();
@@ -15,8 +10,7 @@ export const routerBindingHandler: KnockoutBindingHandler = {
       const path = element.getAttribute('href');
 
       if (path) {
-        // $root always related to the root view model
-        bindingContext.$root.navigate(path);
+        appRouter.navigate(path);
       }
     }
 

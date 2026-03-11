@@ -6,11 +6,22 @@ export interface ApplicationEventMap {
 
 export type ApplicationEventName = keyof ApplicationEventMap;
 
-class ApplicationEventBus {
+export class ApplicationEventBus {
+  private static instance: ApplicationEventBus | null;
   private dispatcher: KnockoutSubscribable<unknown>;
 
-  constructor() {
+  private constructor() {
+    this.publish = this.publish.bind(this);
+    this.subscribe = this.subscribe.bind(this);
+
     this.dispatcher = new ko.subscribable<unknown>();
+  }
+
+  public static getInstance() {
+    if (!ApplicationEventBus.instance) {
+      ApplicationEventBus.instance = new ApplicationEventBus();
+    }
+    return ApplicationEventBus.instance;
   }
 
   public publish<T extends ApplicationEventName>(
@@ -29,4 +40,4 @@ class ApplicationEventBus {
   }
 }
 
-export const appEventBus = new ApplicationEventBus();
+export const appEventBus = ApplicationEventBus.getInstance();

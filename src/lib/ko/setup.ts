@@ -1,6 +1,7 @@
 import ko from 'knockout';
+import { linkBindingHandler } from './bindings/link';
+import { navigateBindingHandler } from './bindings/navigate';
 import { reactBindingHandler } from './bindings/react';
-import { routerBindingHandler } from './bindings/router';
 import { datepickerComponent } from './components/datepicker';
 import { mainComponent } from './components/main';
 import { notFoundComponent } from './components/not-found';
@@ -35,7 +36,8 @@ ko.components.register('datepicker-lazy-component', {
 });
 
 // apply custom knockout bindings
-ko.bindingHandlers['router'] = routerBindingHandler;
+ko.bindingHandlers['link'] = linkBindingHandler;
+ko.bindingHandlers['navigate'] = navigateBindingHandler;
 ko.bindingHandlers['reactMain'] = reactBindingHandler;
 ko.bindingHandlers['reactDatepicker'] = reactBindingHandler;
 
