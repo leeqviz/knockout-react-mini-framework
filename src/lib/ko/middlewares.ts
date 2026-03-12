@@ -13,8 +13,7 @@ export const requireAuth: RouteMiddleware = (
     const redirectUrl = encodeURIComponent(context.fullPath);
 
     context.navigate(`/login?redirectTo=${redirectUrl}`);
-
-    return '/login';
+    return false;
   }
   return true;
 };

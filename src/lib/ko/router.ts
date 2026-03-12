@@ -124,43 +124,15 @@ export class ApplicationRouter {
       if (match) {
         for (const middleware of route.middlewares || []) {
           const result = middleware({ navigate: this.navigate, fullPath });
+          console.warn(`Middleware: `, result);
+          if (result === false) {
+            return;
+          }
           if (typeof result === 'string') {
-            this.navigate(result);
+            this.navigate(result, { replace: true });
             return;
           }
         }
-
-        /*
-         // 1. Находим нужный маршрут (ваш код парсинга)
-        const matchedRoute = this.findRoute(fullPath); 
-
-        if (matchedRoute) {
-            // 2. ЗАПУСКАЕМ ГВАРДЫ, ЕСЛИ ОНИ ЕСТЬ
-            if (matchedRoute.guards && matchedRoute.guards.length > 0) {
-                for (const guard of matchedRoute.guards) {
-                    const result = guard(); // Вызываем проверку
-                    
-                    if (result === false) {
-                        return; // Молча прерываем маршрутизацию
-                    }
-                    
-                    if (typeof result === 'string') {
-                        // Это редирект! Вызываем navigate с заменой истории
-                        this.navigate(result, { replace: true });
-                        return; // Прерываем текущую маршрутизацию
-                    }
-                }
-            }
-
-            // 3. Если все гварды вернули true, делаем переход
-            this.currentComponent(matchedRoute.component);
-            // this.currentParams(...);
-            this.currentPath(fullPath);
-        } else {
-            // Обработка 404
-            this.currentComponent('not-found-widget');
-        }
-         */
 
         const paramValues = match.slice(1);
 

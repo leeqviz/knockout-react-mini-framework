@@ -7,9 +7,8 @@ export default mergeConfig(
     test: {
       environment: 'jsdom', // for react testing library
       setupFiles: [
-        './src/tests/setup.ts',
-        './src/tests/mocks.ts',
-        './src/tests/wrappers.tsx',
+        './src/tests/vitest-setup.ts',
+        './src/tests/knockout-setup.ts',
       ], // useful for mocks initialization
     },
   }),
