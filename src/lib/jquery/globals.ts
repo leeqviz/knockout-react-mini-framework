@@ -6,8 +6,6 @@ declare global {
     jQuery: typeof jquery;
   }
 }
-window.$ = jquery;
-window.jQuery = jquery;
 
-export const $ = window.$;
-export const jQuery = window.jQuery;
+export const $ = (window.$ = jquery);
+export const jQuery = (window.jQuery = jquery);
