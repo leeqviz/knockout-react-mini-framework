@@ -1,4 +1,4 @@
-import ko from 'knockout';
+const ko = window.ko;
 import { linkBindingHandler } from './bindings/link';
 import { navigateBindingHandler } from './bindings/navigate';
 import { reactBindingHandler } from './bindings/react';

@@ -1,5 +1,5 @@
 import { appStore } from '@/stores/app';
-import ko from 'knockout';
+const ko = window.ko;
 
 export interface RouteConfig {
   pattern: string;

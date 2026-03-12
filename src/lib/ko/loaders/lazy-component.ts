@@ -1,4 +1,4 @@
-import ko from 'knockout';
+const ko = window.ko;
 
 export const lazyComponentLoader: KnockoutComponentTypes.Loader = {
   loadComponent: function (name, componentConfig, callback) {

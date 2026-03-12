@@ -1,12 +1,12 @@
 import { appEventBus, type ApplicationEventMap } from '@/lib/ko/event-bus';
 import { appStore, type AppState } from '@/stores/app';
 import type { User } from '@/types/user';
-import ko from 'knockout';
 import type {
   KnockoutObservableArrayWithDispose,
   KnockoutObservableWithDispose,
 } from '../globals';
 import { appRouter, type ApplicationRouter } from '../router';
+const ko = window.ko;
 
 // ViewModel as a shell for the entire application
 export class AppViewModel {

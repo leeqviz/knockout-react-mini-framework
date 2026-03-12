@@ -2,9 +2,9 @@ import {
   DatepickerEntryPointLazy,
   type DatepickerEntryPointProps,
 } from '@/modules/datepicker';
-import ko from 'knockout';
 import type { ComponentType } from 'react';
 import { mapRouterData } from '../mapper';
+const ko = window.ko;
 
 export class DatepickerViewModel {
   public computedProps: KnockoutComputed<DatepickerEntryPointProps>;

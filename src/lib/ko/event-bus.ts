@@ -1,4 +1,4 @@
-import ko from 'knockout';
+const ko = window.ko;
 
 export interface ApplicationEventMap {
   REACT_COMPONENT_READY: { componentId: string };

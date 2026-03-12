@@ -1,4 +1,4 @@
-import ko from 'knockout';
+const ko = window.ko;
 import { createElement, type ElementType } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 

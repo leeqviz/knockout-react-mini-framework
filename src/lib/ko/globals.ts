@@ -15,6 +15,9 @@ export type KnockoutObservableArrayWithDispose<T> =
   };
 
 declare global {
+  interface Window {
+    ko: typeof import('knockout');
+  }
   interface KnockoutExtenders {
     localStorageSync<T>(
       target:

@@ -1,4 +1,4 @@
-import * as ko from 'knockout';
+const ko = window.ko;
 import { appRouter } from '../router';
 
 export const navigateBindingHandler: KnockoutBindingHandler = {
