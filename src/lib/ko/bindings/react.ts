@@ -1,4 +1,4 @@
-const ko = window.ko;
+import { ko } from '@/lib/ko/globals';
 import { createElement, type ElementType } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 

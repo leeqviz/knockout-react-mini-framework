@@ -1,4 +1,4 @@
-const ko = window.ko;
+import { ko } from '@/lib/ko/globals';
 import { appRouter } from '../router';
 
 export const navigateBindingHandler: KnockoutBindingHandler = {

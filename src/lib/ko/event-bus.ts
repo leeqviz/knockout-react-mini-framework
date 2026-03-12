@@ -1,4 +1,4 @@
-const ko = window.ko;
+import { ko } from '@/lib/ko/globals';
 
 export interface ApplicationEventMap {
   REACT_COMPONENT_READY: { componentId: string };

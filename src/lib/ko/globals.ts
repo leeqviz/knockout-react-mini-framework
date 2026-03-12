@@ -54,3 +54,5 @@ declare global {
     }
   }
 }
+
+export const ko = window.ko;

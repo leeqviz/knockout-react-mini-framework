@@ -1,5 +1,5 @@
+import { ko } from '@/lib/ko/globals';
 import { appStore } from '@/stores/app';
-const ko = window.ko;
 
 export interface RouteConfig {
   pattern: string;

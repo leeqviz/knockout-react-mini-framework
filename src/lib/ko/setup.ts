@@ -1,4 +1,4 @@
-const ko = window.ko;
+import { ko } from '@/lib/ko/globals';
 import { linkBindingHandler } from './bindings/link';
 import { navigateBindingHandler } from './bindings/navigate';
 import { reactBindingHandler } from './bindings/react';

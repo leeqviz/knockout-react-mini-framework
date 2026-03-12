@@ -1,4 +1,4 @@
-const ko = window.ko;
+import { ko } from '@/lib/ko/globals';
 
 export const lazyComponentLoader: KnockoutComponentTypes.Loader = {
   loadComponent: function (name, componentConfig, callback) {

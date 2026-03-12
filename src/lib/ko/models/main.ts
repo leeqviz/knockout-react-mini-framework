@@ -1,7 +1,7 @@
+import { ko } from '@/lib/ko/globals';
 import { MainEntryPointLazy, type MainEntryPointProps } from '@/modules/main';
 import type { ComponentType } from 'react';
 import { mapRouterData } from '../mapper';
-const ko = window.ko;
 
 export class MainViewModel {
   public computedProps: KnockoutComputed<MainEntryPointProps>;

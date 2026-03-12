@@ -1,10 +1,10 @@
+import { ko } from '@/lib/ko/globals';
 import {
   DatepickerEntryPointLazy,
   type DatepickerEntryPointProps,
 } from '@/modules/datepicker';
 import type { ComponentType } from 'react';
 import { mapRouterData } from '../mapper';
-const ko = window.ko;
 
 export class DatepickerViewModel {
   public computedProps: KnockoutComputed<DatepickerEntryPointProps>;
