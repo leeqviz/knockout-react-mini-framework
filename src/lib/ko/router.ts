@@ -1,22 +1,38 @@
 import { ko } from '@/lib/ko/globals';
-import { appStore } from '@/stores/app';
+import { requireAuth } from './middlewares';
+
+export interface RouteMiddlewareContext {
+  navigate: (path: string, options?: { replace?: boolean | undefined }) => void;
+  fullPath: string;
+}
+
+export type RouteMiddleware = (
+  context: RouteMiddlewareContext,
+) => boolean | string;
 
 export interface RouteConfig {
   pattern: string;
   component: string;
-  protected?: boolean;
+  middlewares?: RouteMiddleware[] | undefined;
+}
+
+export interface RouterOptions {
+  routes?: RouteConfig[] | undefined;
+  middlewares?: RouteMiddleware[] | undefined;
+  notFoundComponent?: string | undefined;
 }
 
 export class ApplicationRouter {
   private static instance: ApplicationRouter | null;
 
   private routes: RouteConfig[];
+  private notFoundComponent: string;
   public currentComponent: KnockoutObservable<string>;
   public currentParams: KnockoutObservable<Record<string, string>>;
   public currentPathname: KnockoutObservable<string>;
   public currentSearch: KnockoutObservable<string>;
 
-  private constructor() {
+  private constructor(options?: RouterOptions) {
     this.start = this.start.bind(this);
     this.dispose = this.dispose.bind(this);
     this.handlePopState = this.handlePopState.bind(this);
@@ -24,15 +40,24 @@ export class ApplicationRouter {
     this.handlePath = this.handlePath.bind(this);
     this.setSearchParams = this.setSearchParams.bind(this);
 
-    this.routes = [
+    this.routes = options?.routes || [
       // order is important
       { pattern: '/', component: 'main-component' },
-      { pattern: '/test', component: 'datepicker-component', protected: true },
+      {
+        pattern: '/test',
+        component: 'datepicker-component',
+        middlewares: [requireAuth],
+      },
       /* { pattern: '/test/settings', component: 'users-settings-widget' }, 
         { pattern: '/test/:userId', component: 'user-profile-widget' },
         { pattern: '/test/:userId/posts/:postId', component: 'post-detail-widget' } */
     ];
-    this.currentComponent = ko.observable<string>('main-component');
+    this.notFoundComponent =
+      options?.notFoundComponent || 'not-found-component';
+    this.currentComponent = ko.observable<string>(
+      this.routes.find((r) => r.pattern === '/')?.component ||
+        this.notFoundComponent,
+    );
     this.currentParams = ko.observable<Record<string, string>>({});
     this.currentPathname = ko.observable(window.location.pathname);
     this.currentSearch = ko.observable('');
@@ -97,20 +122,45 @@ export class ApplicationRouter {
       const match = normalizedPath.match(regex);
 
       if (match) {
-        if (route.protected) {
-          const isAuth = appStore.getState().isAuth;
-
-          if (!isAuth) {
-            console.warn(
-              `Access to ${fullPath} is denied, user is not authenticated`,
-            );
-
-            const redirectUrl = encodeURIComponent(fullPath);
-            this.navigate(`/login?redirectTo=${redirectUrl}`);
-
+        for (const middleware of route.middlewares || []) {
+          const result = middleware({ navigate: this.navigate, fullPath });
+          if (typeof result === 'string') {
+            this.navigate(result);
             return;
           }
         }
+
+        /*
+         // 1. Находим нужный маршрут (ваш код парсинга)
+        const matchedRoute = this.findRoute(fullPath); 
+
+        if (matchedRoute) {
+            // 2. ЗАПУСКАЕМ ГВАРДЫ, ЕСЛИ ОНИ ЕСТЬ
+            if (matchedRoute.guards && matchedRoute.guards.length > 0) {
+                for (const guard of matchedRoute.guards) {
+                    const result = guard(); // Вызываем проверку
+                    
+                    if (result === false) {
+                        return; // Молча прерываем маршрутизацию
+                    }
+                    
+                    if (typeof result === 'string') {
+                        // Это редирект! Вызываем navigate с заменой истории
+                        this.navigate(result, { replace: true });
+                        return; // Прерываем текущую маршрутизацию
+                    }
+                }
+            }
+
+            // 3. Если все гварды вернули true, делаем переход
+            this.currentComponent(matchedRoute.component);
+            // this.currentParams(...);
+            this.currentPath(fullPath);
+        } else {
+            // Обработка 404
+            this.currentComponent('not-found-widget');
+        }
+         */
 
         const paramValues = match.slice(1);
 
@@ -130,7 +180,7 @@ export class ApplicationRouter {
       }
     }
 
-    this.currentComponent('not-found-component');
+    this.currentComponent(this.notFoundComponent);
     this.currentParams({ ...queryParams });
   }
 

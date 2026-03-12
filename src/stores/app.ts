@@ -4,6 +4,7 @@ import { createStore } from 'zustand/vanilla';
 
 export interface AppStateData {
   isAuth: boolean;
+  user: User | null;
   count: number;
   date: string;
   users: User[];
@@ -23,6 +24,7 @@ export type AppState = AppStateData & AppStateActions;
 
 export const initialAppStateData: AppStateData = {
   isAuth: false,
+  user: null,
   count: 0,
   date: getCurrentISODate(),
   users: [{ id: 1, name: 'Test' }],
