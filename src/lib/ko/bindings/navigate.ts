@@ -1,5 +1,5 @@
 import { ko } from '../globals';
-import { appRouter } from '../router';
+import { appRouter } from '../router/app';
 
 export const navigateBindingHandler: KnockoutBindingHandler = {
   init: function (element: HTMLElement, valueAccessor: () => string) {

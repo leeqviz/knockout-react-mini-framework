@@ -1,7 +1,7 @@
 import { MainEntryPointLazy, type MainEntryPointProps } from '@/modules/main';
 import type { ComponentType } from 'react';
 import { ko } from '../globals';
-import { appRouter } from '../router';
+import { appRouter } from '../router/app';
 
 export class MainViewModel {
   public computedProps: KnockoutComputed<MainEntryPointProps>;

@@ -10,7 +10,7 @@ import {
   type KnockoutObservableArrayWithDispose,
   type KnockoutObservableWithDispose,
 } from '../globals';
-import { appRouter, type ApplicationRouter } from '../router';
+import { appRouter, type ApplicationRouter } from '../router/app';
 
 // ViewModel as a shell for the entire application
 export class AppViewModel {

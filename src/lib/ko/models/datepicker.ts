@@ -4,7 +4,7 @@ import {
 } from '@/modules/datepicker';
 import type { ComponentType } from 'react';
 import { ko } from '../globals';
-import { appRouter } from '../router';
+import { appRouter } from '../router/app';
 
 export class DatepickerViewModel {
   public computedProps: KnockoutComputed<DatepickerEntryPointProps>;
