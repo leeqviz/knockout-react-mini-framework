@@ -1,4 +1,4 @@
-import { appEventBus } from '@/lib/ko/event-bus';
+import { appEventBus, ApplicationEvent } from '@/lib/ko/event-bus';
 import { DefaultContainer } from '@/lib/react/components/containers';
 import { useRouter } from '@/lib/react/hooks/routing';
 import { useEffect } from 'react';
@@ -10,9 +10,9 @@ export function MainContainer() {
   console.log('MainContainer router: ', router);
 
   useEffect(() => {
-    appEventBus.publish('REACT_COMPONENT_READY', { componentId: 'main' });
-
-    return () => {};
+    appEventBus.publish(ApplicationEvent.REACT_COMPONENT_RENDER, {
+      name: 'main',
+    });
   }, []);
 
   return (

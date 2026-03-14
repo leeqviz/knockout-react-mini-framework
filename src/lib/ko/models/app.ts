@@ -1,6 +1,10 @@
 import { appStore, type AppState } from '@/stores/app';
 import type { User } from '@/types/user';
-import { appEventBus, type ApplicationEventMap } from '../event-bus';
+import {
+  appEventBus,
+  ApplicationEvent,
+  type ApplicationEventPayloadMap,
+} from '../event-bus';
 import {
   ko,
   type KnockoutObservableArrayWithDispose,
@@ -57,7 +61,7 @@ export class AppViewModel {
 
     // Subscribe to the event from react
     this.eventSubscription = appEventBus.subscribe(
-      'REACT_COMPONENT_READY',
+      ApplicationEvent.REACT_COMPONENT_RENDER,
       this.logToConsole,
       this,
     );
@@ -85,8 +89,10 @@ export class AppViewModel {
     appRouter.dispose();
   }
 
-  private logToConsole(payload: ApplicationEventMap['REACT_COMPONENT_READY']) {
-    console.log(`Component is ready: ${payload.componentId}`);
+  private logToConsole(
+    payload: ApplicationEventPayloadMap['react/component-render'],
+  ) {
+    console.log(`Component is ready: ${payload.name}`);
   }
 
   public setCount(value: number) {

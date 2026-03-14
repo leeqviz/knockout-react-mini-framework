@@ -3,12 +3,12 @@ import { createRoot, type Root } from 'react-dom/client';
 import { ko } from '../globals';
 
 // Extends HTMLElement to add _reactRoot property
-export interface ReactRootHTMLElement extends HTMLElement {
+interface ReactRootHTMLElement extends HTMLElement {
   _reactRoot?: Root | undefined;
 }
 
 // Custom binding configuration
-export interface ReactBindingOptions {
+interface ReactBindingOptions {
   component?: ElementType | undefined;
   props?: Record<string, unknown> | undefined;
   deepUnwrap?: boolean | undefined; // for deep unwrapping of nested observables, if needed
