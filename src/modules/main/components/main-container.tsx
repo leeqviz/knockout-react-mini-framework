@@ -4,6 +4,7 @@ import {
   type ApplicationEventPayloadMap,
 } from '@/lib/ko/event-bus/app';
 import { DefaultContainer } from '@/lib/react/components/containers';
+import { Link } from '@/lib/react/components/routing';
 import { useRouter } from '@/lib/react/hooks/routing';
 import { useEffect } from 'react';
 import { LinkedInput } from './linked-input';
@@ -25,6 +26,7 @@ export function MainContainer() {
       <LinkedInput />
       <div className="bg-red-300 h-0.5" />
       <UsersList />
+      <Link to="/test">Go to test</Link>
       <button onClick={() => router.navigate('/test')}>Go to test</button>
     </DefaultContainer>
   );

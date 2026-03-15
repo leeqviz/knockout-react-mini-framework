@@ -2,8 +2,11 @@ import type { RouterSnapshot } from '@/types/router';
 import { ko } from '../globals';
 
 export interface RouteMiddlewareContext {
-  navigate: (path: string, options?: { replace?: boolean | undefined }) => void;
+  navigate: (path: string, options?: NavigateOptions) => void;
   fullPath: string;
+  pathname: string;
+  search: string;
+  state: unknown;
 }
 
 export type RouteMiddleware = (
@@ -23,10 +26,30 @@ export interface RouterOptions {
 }
 
 export type RouteParams = Record<string, string>;
+
 export type SearchParamsPatch = Record<
   string,
   string | number | boolean | null | undefined
 >;
+
+export interface NavigateOptions {
+  replace?: boolean | undefined;
+  state?: unknown;
+}
+
+interface ResolvedRouteState {
+  pathname: string;
+  search: string;
+  component: string;
+  params: RouteParams;
+  searchParams: RouteParams;
+  state: unknown;
+}
+
+type ResolveResult =
+  | { type: 'blocked' }
+  | { type: 'redirect'; to: string }
+  | { type: 'resolved'; value: ResolvedRouteState };
 
 export class BaseRouter {
   protected routes: RouteConfig[];
@@ -38,13 +61,14 @@ export class BaseRouter {
   public currentParams: KnockoutObservable<RouteParams>;
   public currentPathname: KnockoutObservable<string>;
   public currentSearch: KnockoutObservable<string>;
+  public currentSearchParams: KnockoutObservable<RouteParams>;
+  public currentHistoryState: KnockoutObservable<unknown>;
 
   public constructor(options?: RouterOptions) {
     this.start = this.start.bind(this);
     this.dispose = this.dispose.bind(this);
     this.handlePopState = this.handlePopState.bind(this);
     this.navigate = this.navigate.bind(this);
-    this.handlePath = this.handlePath.bind(this);
     this.setSearchParams = this.setSearchParams.bind(this);
     this.getSnapshot = this.getSnapshot.bind(this);
     this.runMiddlewares = this.runMiddlewares.bind(this);
@@ -57,11 +81,15 @@ export class BaseRouter {
     this.normalizePath = this.normalizePath.bind(this);
     this.parseFullPath = this.parseFullPath.bind(this);
     this.applyState = this.applyState.bind(this);
+    this.resolvePath = this.resolvePath.bind(this);
+    this.resolveTo = this.resolveTo.bind(this);
 
     this.routes = this.rankRoutes(options?.routes ?? this.getDefaultRoutes());
     this.globalMiddlewares = options?.middlewares || [];
     this.notFoundComponent =
       options?.notFoundComponent ?? this.getDefaultNotFoundComponent();
+
+    const initialUrl = new URL(window.location.href);
 
     this.currentComponent = ko.observable<string>(
       this.routes.find((route) => route.pattern === '/')?.component ??
@@ -69,9 +97,13 @@ export class BaseRouter {
     );
     this.currentParams = ko.observable<RouteParams>({});
     this.currentPathname = ko.observable<string>(
-      this.normalizePath(window.location.pathname),
+      this.normalizePath(initialUrl.pathname),
     );
-    this.currentSearch = ko.observable<string>(window.location.search);
+    this.currentSearch = ko.observable<string>(initialUrl.search);
+    this.currentSearchParams = ko.observable(
+      Object.fromEntries(initialUrl.searchParams.entries()),
+    );
+    this.currentHistoryState = ko.observable(window.history.state ?? null);
   }
 
   protected getDefaultRoutes(): RouteConfig[] {
@@ -89,7 +121,20 @@ export class BaseRouter {
 
     this.isStarted = true;
     window.addEventListener('popstate', this.handlePopState);
-    this.handlePath(window.location.pathname + window.location.search);
+    const fullPath = window.location.pathname + window.location.search;
+    const result = this.resolvePath(fullPath, window.history.state ?? null);
+
+    if (result.type === 'redirect') {
+      this.navigate(result.to, {
+        replace: true,
+        state: null,
+      });
+      return;
+    }
+
+    if (result.type === 'resolved') {
+      this.applyState(result.value);
+    }
   }
 
   public dispose(): void {
@@ -101,32 +146,54 @@ export class BaseRouter {
     window.removeEventListener('popstate', this.handlePopState);
   }
 
-  public navigate(
-    path: string,
-    options?: { replace?: boolean | undefined },
-  ): void {
-    if (!path.startsWith('/')) {
-      throw new Error(`BaseRouter.navigate: invalid path "${path}"`);
+  public navigate(path: string, options?: NavigateOptions | undefined): void {
+    const nextUrl = this.resolveTo(path);
+
+    if (nextUrl.origin !== window.location.origin) {
+      throw new Error(
+        `BaseRouter.navigate: cross-origin path "${path}" is not allowed`,
+      );
     }
 
-    const nextUrl = new URL(path, window.location.origin);
     const nextFullPath = nextUrl.pathname + nextUrl.search;
     const currentFullPath = window.location.pathname + window.location.search;
+    const nextState = options?.state ?? null;
 
-    if (currentFullPath === nextFullPath) {
+    const samePath = currentFullPath === nextFullPath;
+    const sameState = window.history.state === nextState;
+
+    if (samePath && sameState) {
+      return;
+    }
+
+    const result = this.resolvePath(nextFullPath, nextState);
+
+    if (result.type === 'blocked') {
+      return;
+    }
+
+    if (result.type === 'redirect') {
+      if (result.to === nextFullPath) {
+        return;
+      }
+
+      this.navigate(result.to, { replace: true, state: nextState });
       return;
     }
 
     if (options?.replace) {
-      window.history.replaceState({}, '', nextFullPath);
+      window.history.replaceState(nextState, '', nextFullPath);
     } else {
-      window.history.pushState({}, '', nextFullPath);
+      window.history.pushState(nextState, '', nextFullPath);
     }
 
-    this.handlePath(nextFullPath);
+    this.applyState(result.value);
   }
 
-  public setSearchParams(newParams: SearchParamsPatch): void {
+  public setSearchParams(
+    newParams: SearchParamsPatch,
+    options?: NavigateOptions,
+  ): void {
     const url = new URL(window.location.href);
 
     Object.entries(newParams).forEach(([key, value]) => {
@@ -137,40 +204,75 @@ export class BaseRouter {
       }
     });
 
-    this.navigate(url.pathname + url.search, { replace: true });
+    this.navigate(url.pathname + url.search, {
+      replace: options?.replace ?? true,
+      state: options?.state ?? this.currentHistoryState(),
+    });
   }
 
   public getSnapshot(): RouterSnapshot {
     return {
       navigate: this.navigate,
       params: this.currentParams(),
+      searchParams: this.currentSearchParams(),
       location: {
         pathname: this.currentPathname(),
         search: this.currentSearch(),
+        state: this.currentHistoryState(),
       },
       setSearchParams: this.setSearchParams,
     };
   }
 
   protected handlePopState = (): void => {
-    this.handlePath(window.location.pathname + window.location.search);
-  };
+    const previousFullPath = this.currentPathname() + this.currentSearch();
+    const previousState = this.currentHistoryState();
+    const nextFullPath = window.location.pathname + window.location.search;
+    const nextState = window.history.state ?? null;
 
-  protected handlePath(fullPath: string): void {
-    const { pathname, search, queryParams } = this.parseFullPath(fullPath);
+    const result = this.resolvePath(nextFullPath, nextState);
 
-    const globalMiddlewareResult = this.runMiddlewares(
-      this.globalMiddlewares,
-      fullPath,
-    );
-
-    if (globalMiddlewareResult === false) {
+    if (result.type === 'blocked') {
+      window.history.replaceState(previousState ?? null, '', previousFullPath);
       return;
     }
 
-    if (typeof globalMiddlewareResult === 'string') {
-      this.navigate(globalMiddlewareResult, { replace: true });
+    if (result.type === 'redirect') {
+      if (result.to === nextFullPath) {
+        window.history.replaceState(
+          previousState ?? null,
+          '',
+          previousFullPath,
+        );
+        return;
+      }
+
+      this.navigate(result.to, {
+        replace: true,
+        state: null,
+      });
       return;
+    }
+
+    this.applyState(result.value);
+  };
+
+  protected resolvePath(fullPath: string, state: unknown): ResolveResult {
+    const { pathname, search, searchParams } = this.parseFullPath(fullPath);
+
+    const globalMiddlewareResult = this.runMiddlewares(this.globalMiddlewares, {
+      fullPath,
+      pathname,
+      search,
+      state,
+    });
+
+    if (globalMiddlewareResult === false) {
+      return { type: 'blocked' };
+    }
+
+    if (typeof globalMiddlewareResult === 'string') {
+      return { type: 'redirect', to: globalMiddlewareResult };
     }
 
     for (const route of this.routes) {
@@ -180,48 +282,86 @@ export class BaseRouter {
         continue;
       }
 
-      const middlewareResult = this.runMiddlewares(
-        route.middlewares || [],
+      const middlewareResult = this.runMiddlewares(route.middlewares ?? [], {
         fullPath,
-      );
+        pathname,
+        search,
+        state,
+      });
 
       if (middlewareResult === false) {
-        return;
+        return { type: 'blocked' };
       }
 
       if (typeof middlewareResult === 'string') {
-        this.navigate(middlewareResult, { replace: true });
-        return;
+        return { type: 'redirect', to: middlewareResult };
       }
 
-      this.applyState({
-        pathname,
-        search,
-        component: route.component,
-        params: { ...queryParams, ...match },
-      });
-      return;
+      return {
+        type: 'resolved',
+        value: {
+          pathname,
+          search,
+          component: route.component,
+          params: match,
+          searchParams,
+          state,
+        },
+      };
     }
 
-    this.applyState({
-      pathname,
-      search,
-      component: this.notFoundComponent,
-      params: { ...queryParams },
-    });
+    return {
+      type: 'resolved',
+      value: {
+        pathname,
+        search,
+        component: this.notFoundComponent,
+        params: {},
+        searchParams,
+        state,
+      },
+    };
+  }
+
+  protected resolveTo(path: string): URL {
+    if (!path) {
+      throw new Error('BaseRouter.navigate: empty path');
+    }
+
+    const origin = window.location.origin;
+    const currentPathname = this.currentPathname();
+    const currentSearch = this.currentSearch();
+
+    if (path.startsWith('/')) {
+      return new URL(path, origin);
+    }
+
+    if (path.startsWith('?')) {
+      return new URL(`${currentPathname}${path}`, origin);
+    }
+
+    if (path.startsWith('#')) {
+      return new URL(`${currentPathname}${currentSearch}${path}`, origin);
+    }
+
+    const basePath = currentPathname.endsWith('/')
+      ? currentPathname
+      : `${currentPathname}/`;
+
+    return new URL(path, `${origin}${basePath}`);
   }
 
   protected parseFullPath(fullPath: string): {
     pathname: string;
     search: string;
-    queryParams: RouteParams;
+    searchParams: RouteParams;
   } {
     const url = new URL(fullPath, window.location.origin);
 
     return {
       pathname: this.normalizePath(url.pathname),
       search: url.search,
-      queryParams: Object.fromEntries(url.searchParams.entries()),
+      searchParams: Object.fromEntries(url.searchParams.entries()),
     };
   }
 
@@ -233,26 +373,31 @@ export class BaseRouter {
     return path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path;
   }
 
-  protected applyState(nextState: {
-    pathname: string;
-    search: string;
-    component: string;
-    params: RouteParams;
-  }): void {
+  protected applyState(nextState: ResolvedRouteState): void {
     this.currentPathname(nextState.pathname);
     this.currentSearch(nextState.search);
     this.currentComponent(nextState.component);
     this.currentParams(nextState.params);
+    this.currentSearchParams(nextState.searchParams);
+    this.currentHistoryState(nextState.state);
   }
 
   protected runMiddlewares(
     middlewares: RouteMiddleware[],
-    fullPath: string,
+    context: {
+      fullPath: string;
+      pathname: string;
+      search: string;
+      state: unknown;
+    },
   ): boolean | string | void {
     for (const middleware of middlewares) {
       const result = middleware({
         navigate: this.navigate,
-        fullPath,
+        fullPath: context.fullPath,
+        pathname: context.pathname,
+        search: context.search,
+        state: context.state,
       });
 
       if (result === false || typeof result === 'string') {
@@ -260,39 +405,6 @@ export class BaseRouter {
       }
     }
   }
-
-  /* protected matchRoute(pattern: string, pathname: string): RouteParams | null {
-    const normalizedPattern = this.normalizePath(pattern);
-
-    const patternSegments = normalizedPattern.split('/').filter(Boolean);
-    const pathSegments = pathname.split('/').filter(Boolean);
-
-    if (patternSegments.length !== pathSegments.length) {
-      return null;
-    }
-
-    const params: RouteParams = {};
-
-    for (let index = 0; index < patternSegments.length; index += 1) {
-      const patternSegment = patternSegments[index];
-      const pathSegment = pathSegments[index];
-
-      if (!patternSegment || !pathSegment) {
-        return null;
-      }
-
-      if (patternSegment.startsWith(':')) {
-        params[patternSegment.slice(1)] = pathSegment;
-        continue;
-      }
-
-      if (patternSegment !== pathSegment) {
-        return null;
-      }
-    }
-
-    return params;
-  } */
 
   protected rankRoutes(routes: RouteConfig[]): RouteConfig[] {
     return routes

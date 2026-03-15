@@ -1,9 +1,20 @@
+import type {
+  NavigateOptions,
+  RouteParams,
+  SearchParamsPatch,
+} from '@/lib/ko/router';
+
 export interface RouterSnapshot {
-  navigate: (path: string, options?: { replace?: boolean | undefined }) => void;
-  params: Record<string, string>;
+  navigate: (path: string, options?: NavigateOptions) => void;
+  params: RouteParams;
+  searchParams: RouteParams;
   location: {
-    pathname: string; // example: '/users'
-    search: string; // example: '?id=1'
+    pathname: string;
+    search: string;
+    state: unknown;
   };
-  setSearchParams: (params: Record<string, string>) => void;
+  setSearchParams: (
+    newParams: SearchParamsPatch,
+    options?: NavigateOptions,
+  ) => void;
 }
