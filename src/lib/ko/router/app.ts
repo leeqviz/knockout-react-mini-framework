@@ -17,7 +17,6 @@ export class ApplicationRouter extends BaseRouter {
   }
 
   protected override getDefaultRoutes(): RouteConfig[] {
-    // TODO: make components to be not hardcoded and add nested routes, route ranking, wildcard-маршрутов, optional params and async middleware
     return [
       { pattern: '/', component: 'main-component' },
       {
@@ -25,11 +24,10 @@ export class ApplicationRouter extends BaseRouter {
         component: 'datepicker-component',
         middlewares: [requireAuth],
       },
-      { pattern: '/test/:userId', component: 'user-profile-widget' },
-      {
-        pattern: '/test/:userId/posts/:postId',
-        component: 'post-detail-widget',
-      },
+      { pattern: '/users/:id', component: 'user-component' },
+      { pattern: '/docs/*', component: 'docs-catch-all' },
+      { pattern: '/:lang?/about', component: 'about-component' },
+      { pattern: '/files/:path*', component: 'file-viewer' },
     ];
   }
 

@@ -49,11 +49,16 @@ export class BaseRouter {
     this.getSnapshot = this.getSnapshot.bind(this);
     this.runMiddlewares = this.runMiddlewares.bind(this);
     this.matchRoute = this.matchRoute.bind(this);
+    this.matchSegments = this.matchSegments.bind(this);
+    this.rankRoutes = this.rankRoutes.bind(this);
+    this.getRouteScore = this.getRouteScore.bind(this);
+    this.isWildcardSegment = this.isWildcardSegment.bind(this);
+    this.getWildcardParamName = this.getWildcardParamName.bind(this);
     this.normalizePath = this.normalizePath.bind(this);
     this.parseFullPath = this.parseFullPath.bind(this);
     this.applyState = this.applyState.bind(this);
 
-    this.routes = options?.routes ?? this.getDefaultRoutes();
+    this.routes = this.rankRoutes(options?.routes ?? this.getDefaultRoutes());
     this.globalMiddlewares = options?.middlewares || [];
     this.notFoundComponent =
       options?.notFoundComponent ?? this.getDefaultNotFoundComponent();
@@ -256,7 +261,7 @@ export class BaseRouter {
     }
   }
 
-  protected matchRoute(pattern: string, pathname: string): RouteParams | null {
+  /* protected matchRoute(pattern: string, pathname: string): RouteParams | null {
     const normalizedPattern = this.normalizePath(pattern);
 
     const patternSegments = normalizedPattern.split('/').filter(Boolean);
@@ -287,5 +292,139 @@ export class BaseRouter {
     }
 
     return params;
+  } */
+
+  protected rankRoutes(routes: RouteConfig[]): RouteConfig[] {
+    return routes
+      .map((route, index) => ({
+        route,
+        index,
+        score: this.getRouteScore(route.pattern),
+      }))
+      .sort((left, right) => {
+        return right.score - left.score || left.index - right.index;
+      })
+      .map((item) => item.route);
+  }
+
+  protected getRouteScore(pattern: string): number {
+    const segments = this.normalizePath(pattern).split('/').filter(Boolean);
+
+    if (segments.length === 0) {
+      return 10_000;
+    }
+
+    return (
+      segments.reduce((score, segment) => {
+        if (this.isWildcardSegment(segment)) {
+          return score + 1;
+        }
+
+        if (segment.startsWith(':')) {
+          return score + (segment.endsWith('?') ? 200 : 300);
+        }
+
+        return score + 400;
+      }, 0) + segments.length
+    );
+  }
+
+  protected isWildcardSegment(segment: string): boolean {
+    return segment === '*' || segment.startsWith('*');
+  }
+
+  protected getWildcardParamName(segment: string): string {
+    return segment.length > 1 ? segment.slice(1) : 'wildcard';
+  }
+
+  protected matchRoute(pattern: string, pathname: string): RouteParams | null {
+    const normalizedPattern = this.normalizePath(pattern);
+    const patternSegments = normalizedPattern.split('/').filter(Boolean);
+    const pathSegments = pathname.split('/').filter(Boolean);
+
+    return this.matchSegments(patternSegments, pathSegments, 0, 0, {});
+  }
+
+  protected matchSegments(
+    patternSegments: string[],
+    pathSegments: string[],
+    patternIndex: number,
+    pathIndex: number,
+    params: RouteParams,
+  ): RouteParams | null {
+    if (patternIndex === patternSegments.length) {
+      return pathIndex === pathSegments.length ? params : null;
+    }
+
+    const patternSegment = patternSegments[patternIndex];
+
+    if (!patternSegment) {
+      return null;
+    }
+
+    if (this.isWildcardSegment(patternSegment)) {
+      if (patternIndex !== patternSegments.length - 1) {
+        return null;
+      }
+
+      return {
+        ...params,
+        [this.getWildcardParamName(patternSegment)]: pathSegments
+          .slice(pathIndex)
+          .join('/'),
+      };
+    }
+
+    const pathSegment = pathSegments[pathIndex];
+
+    if (patternSegment.startsWith(':')) {
+      const isOptional = patternSegment.endsWith('?');
+      const paramName = patternSegment.slice(1, isOptional ? -1 : undefined);
+
+      if (!paramName) {
+        return null;
+      }
+
+      if (isOptional) {
+        const skipped = this.matchSegments(
+          patternSegments,
+          pathSegments,
+          patternIndex + 1,
+          pathIndex,
+          params,
+        );
+
+        if (skipped) {
+          return skipped;
+        }
+      }
+
+      if (pathSegment === undefined) {
+        return null;
+      }
+
+      return this.matchSegments(
+        patternSegments,
+        pathSegments,
+        patternIndex + 1,
+        pathIndex + 1,
+        {
+          ...params,
+          [paramName]: pathSegment,
+        },
+      );
+    }
+
+    if (pathSegment === undefined || patternSegment !== pathSegment) {
+      return null;
+    }
+
+    return this.matchSegments(
+      patternSegments,
+      pathSegments,
+      patternIndex + 1,
+      pathIndex + 1,
+      params,
+    );
   }
 }
