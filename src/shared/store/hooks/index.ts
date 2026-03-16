@@ -1,1 +1,1 @@
-export * from './use-app-store';
+export { useAppStore } from './use-app-store';

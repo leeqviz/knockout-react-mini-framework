@@ -46,4 +46,8 @@ declare global {
 }
 
 export const ko = window.ko;
-export * from './types';
+export type {
+  KnockoutObservableArrayWithDispose,
+  KnockoutObservableWithDispose,
+  StoreSyncConfig,
+} from './types';

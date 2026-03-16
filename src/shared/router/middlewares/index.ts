@@ -1,2 +1,2 @@
-export * from './require-admin';
-export * from './require-auth';
+export { requireAdmin } from './require-admin';
+export { requireAuth } from './require-auth';

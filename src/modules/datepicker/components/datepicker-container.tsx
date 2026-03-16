@@ -1,7 +1,7 @@
 import {
+  AppEvent,
   appEventBus,
-  ApplicationEvent,
-  type ApplicationEventPayloadMap,
+  type AppEventPayloadMap,
 } from '@/shared/event-bus';
 import { DefaultContainer } from '@/shared/ui/container';
 import { useEffect } from 'react';
@@ -9,10 +9,10 @@ import { JqueryDatepicker } from './jquery-datepicker';
 
 export function DatepickerContainer() {
   useEffect(() => {
-    const payload: ApplicationEventPayloadMap['react/component-render'] = {
+    const payload: AppEventPayloadMap['react/component-render'] = {
       name: 'datepicker',
     };
-    appEventBus.publish(ApplicationEvent.REACT_COMPONENT_RENDER, payload);
+    appEventBus.publish(AppEvent.REACT_COMPONENT_RENDER, payload);
   }, []);
 
   return (

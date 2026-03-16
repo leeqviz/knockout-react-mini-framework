@@ -1,1 +1,5 @@
-export * from './extenders';
+export type {
+  KnockoutObservableArrayWithDispose,
+  KnockoutObservableWithDispose,
+  StoreSyncConfig,
+} from './extenders';

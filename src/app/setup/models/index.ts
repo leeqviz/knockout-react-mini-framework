@@ -1,1 +1,1 @@
-export * from './app.model';
+export { AppViewModel } from './app.model';

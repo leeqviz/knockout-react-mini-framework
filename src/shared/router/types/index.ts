@@ -1,1 +1,12 @@
-export * from './router';
+export type {
+  NavigateOptions,
+  ResolvedRouteState,
+  ResolveResult,
+  RouteConfig,
+  RouteMiddleware,
+  RouteMiddlewareContext,
+  RouteParams,
+  RouterOptions,
+  RouterSnapshot,
+  SearchParamsPatch,
+} from './router';

@@ -1,13 +1,10 @@
 import { useEffect } from 'react';
-import { appEventBus } from '..';
-import type {
-  ApplicationEventName,
-  ApplicationEventPayloadMap,
-} from '../types';
+import { appEventBus } from '../app-event-bus';
+import type { AppEventName, AppEventPayloadMap } from '../types';
 
-export function useAppEventBus<T extends ApplicationEventName>(
+export function useAppEventBus<T extends AppEventName>(
   event: T,
-  callback: (payload: ApplicationEventPayloadMap[T]) => void,
+  callback: (payload: AppEventPayloadMap[T]) => void,
 ) {
   useEffect(() => {
     const subscription = appEventBus.subscribe(event, callback);

@@ -1,7 +1,7 @@
 import {
+  AppEvent,
   appEventBus,
-  ApplicationEvent,
-  type ApplicationEventPayloadMap,
+  type AppEventPayloadMap,
 } from '@/shared/event-bus';
 import { useRouter } from '@/shared/router';
 import { DefaultContainer } from '@/shared/ui/container';
@@ -15,10 +15,10 @@ export function MainContainer() {
   console.log('MainContainer router: ', router);
 
   useEffect(() => {
-    const payload: ApplicationEventPayloadMap['react/component-render'] = {
+    const payload: AppEventPayloadMap['react/component-render'] = {
       name: 'main',
     };
-    appEventBus.publish(ApplicationEvent.REACT_COMPONENT_RENDER, payload);
+    appEventBus.publish(AppEvent.REACT_COMPONENT_RENDER, payload);
   }, []);
 
   return (

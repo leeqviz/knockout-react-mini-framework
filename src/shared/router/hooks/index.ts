@@ -1,1 +1,1 @@
-export * from './use-app-router';
+export { useRouter } from './use-router';

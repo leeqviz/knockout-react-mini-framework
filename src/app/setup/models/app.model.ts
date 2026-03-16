@@ -1,14 +1,14 @@
 import {
+  AppEvent,
   appEventBus,
-  ApplicationEvent,
-  type ApplicationEventPayloadMap,
+  type AppEventPayloadMap,
 } from '@/shared/event-bus';
 import {
   ko,
   type KnockoutObservableArrayWithDispose,
   type KnockoutObservableWithDispose,
 } from '@/shared/lib/ko';
-import { appRouter, type ApplicationRouter } from '@/shared/router';
+import { appRouter, type AppRouter } from '@/shared/router';
 import { appStore, type AppState } from '@/shared/store';
 import type { User } from '@/shared/types';
 
@@ -24,7 +24,7 @@ export class AppViewModel {
   private eventSubscription: KnockoutSubscription;
 
   // client side routing
-  public appRouter: ApplicationRouter;
+  public appRouter: AppRouter;
 
   public constructor() {
     // Initialize observables with default values
@@ -61,7 +61,7 @@ export class AppViewModel {
 
     // Subscribe to the event from react
     this.eventSubscription = appEventBus.subscribe(
-      ApplicationEvent.REACT_COMPONENT_RENDER,
+      AppEvent.REACT_COMPONENT_RENDER,
       this.logToConsole,
       this,
     );
@@ -89,9 +89,7 @@ export class AppViewModel {
     appRouter.dispose();
   }
 
-  private logToConsole(
-    payload: ApplicationEventPayloadMap['react/component-render'],
-  ) {
+  private logToConsole(payload: AppEventPayloadMap['react/component-render']) {
     console.log(`Component is ready: ${payload.name}`);
   }
 

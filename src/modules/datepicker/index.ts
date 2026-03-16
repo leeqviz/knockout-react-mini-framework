@@ -1,2 +1,5 @@
-export * from './entry-point';
-export * from './entry-point.lazy';
+export {
+  DatepickerEntryPoint,
+  type DatepickerEntryPointProps,
+} from './entry-point';
+export { DatepickerEntryPointLazy } from './entry-point.lazy';

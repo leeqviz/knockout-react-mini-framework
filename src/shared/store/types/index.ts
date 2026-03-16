@@ -1,1 +1,1 @@
-export * from './state';
+export type { AppState, AppStateActions, AppStateData } from './app-state';

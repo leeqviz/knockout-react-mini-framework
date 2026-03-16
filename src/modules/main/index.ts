@@ -1,2 +1,2 @@
-export * from './entry-point';
-export * from './entry-point.lazy';
+export { MainEntryPoint, type MainEntryPointProps } from './entry-point';
+export { MainEntryPointLazy } from './entry-point.lazy';

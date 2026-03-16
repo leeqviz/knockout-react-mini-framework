@@ -1,1 +1,1 @@
-export * from './date';
+export { getCurrentISODate } from './date';

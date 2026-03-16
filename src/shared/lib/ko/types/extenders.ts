@@ -9,6 +9,7 @@ export interface StoreSyncConfig<TState, TSlice> {
 export type KnockoutObservableWithDispose<T> = KnockoutObservable<T> & {
   dispose?: () => void;
 };
+
 export type KnockoutObservableArrayWithDispose<T> =
   KnockoutObservableArray<T> & {
     dispose?: () => void;

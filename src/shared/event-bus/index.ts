@@ -1,24 +1,8 @@
-import { BaseEventBus } from '@/shared/event-bus/lib';
-import type { ApplicationEventPayloadMap } from './types';
-
-export class ApplicationEventBus extends BaseEventBus<ApplicationEventPayloadMap> {
-  private static instance: ApplicationEventBus | null = null;
-
-  private constructor() {
-    super();
-  }
-
-  public static getInstance(): ApplicationEventBus {
-    if (!ApplicationEventBus.instance) {
-      ApplicationEventBus.instance = new ApplicationEventBus();
-    }
-
-    return ApplicationEventBus.instance;
-  }
-}
-
-export const appEventBus = ApplicationEventBus.getInstance();
-
-export * from './constants';
-export * from './hooks';
-export * from './types';
+export { AppEvent } from './app-event';
+export { appEventBus, type AppEventBus } from './app-event-bus';
+export { useAppEventBus } from './hooks';
+export type {
+  AppEventName,
+  AppEventPayloadMap,
+  AppEventPayloadOf,
+} from './types';

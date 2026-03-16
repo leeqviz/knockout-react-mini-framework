@@ -1,1 +1,1 @@
-export * from './lazy-loading-fallback';
+export { LazyLoadingFallback } from './lazy-loading-fallback';

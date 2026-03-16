@@ -9,7 +9,7 @@ import type {
   RouterOptions,
   RouterSnapshot,
   SearchParamsPatch,
-} from '../types';
+} from './types';
 
 export class BaseRouter {
   protected routes: RouteConfig[];

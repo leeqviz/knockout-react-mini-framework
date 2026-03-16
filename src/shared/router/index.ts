@@ -1,45 +1,18 @@
-import { BaseRouter } from './lib';
-import { requireAuth } from './middlewares';
-import type { RouteConfig, RouterOptions } from './types';
-
-export class ApplicationRouter extends BaseRouter {
-  private static instance: ApplicationRouter | null = null;
-
-  private constructor(options?: RouterOptions) {
-    super(options);
-  }
-
-  public static getInstance(options?: RouterOptions): ApplicationRouter {
-    if (!ApplicationRouter.instance) {
-      ApplicationRouter.instance = new ApplicationRouter(options);
-    }
-
-    return ApplicationRouter.instance;
-  }
-
-  protected override getDefaultRoutes(): RouteConfig[] {
-    return [
-      { pattern: '/', component: 'main-component' },
-      {
-        pattern: '/test',
-        component: 'datepicker-component',
-        middlewares: [requireAuth],
-      },
-      { pattern: '/users/:id', component: 'user-component' },
-      { pattern: '/docs/*', component: 'docs-catch-all' },
-      { pattern: '/:lang?/about', component: 'about-component' },
-      { pattern: '/files/:path*', component: 'file-viewer' },
-    ];
-  }
-
-  protected override getDefaultNotFoundComponent(): string {
-    return 'not-found-component';
-  }
-}
-
-export const appRouter = ApplicationRouter.getInstance();
-
-export * from './components';
-export * from './hooks';
-export * from './provider';
-export * from './types';
+export { appRouter, type AppRouter } from './app-router';
+export { notFoundComponent } from './components';
+export { RouterContext } from './context';
+export { useRouter } from './hooks';
+export { requireAdmin, requireAuth } from './middlewares';
+export { RouterProvider } from './provider';
+export type {
+  NavigateOptions,
+  ResolvedRouteState,
+  ResolveResult,
+  RouteConfig,
+  RouteMiddleware,
+  RouteMiddlewareContext,
+  RouteParams,
+  RouterOptions,
+  RouterSnapshot,
+  SearchParamsPatch,
+} from './types';
