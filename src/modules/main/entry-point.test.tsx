@@ -1,4 +1,4 @@
-import { appStore } from '@/shared/store/app';
+import { appStore } from '@/shared/store';
 import {
   mockedRouterContextValue,
   renderWithRouterContext,

@@ -9,7 +9,8 @@ import {
   type KnockoutObservableWithDispose,
 } from '@/shared/lib/ko';
 import { appRouter, type ApplicationRouter } from '@/shared/router';
-import { appStore, type AppState, type User } from '@/shared/store/app';
+import { appStore, type AppState } from '@/shared/store';
+import type { User } from '@/shared/types';
 
 // ViewModel as a shell for the entire application
 export class AppViewModel {

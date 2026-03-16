@@ -1,4 +1,4 @@
-import { useAppStore } from '@/shared/store/app/hooks';
+import { useAppStore } from '@/shared/store';
 
 export function UsersList() {
   const users = useAppStore((state) => state.users);
