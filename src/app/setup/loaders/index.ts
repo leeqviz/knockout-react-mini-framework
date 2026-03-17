@@ -1,4 +1,6 @@
 import { ko } from '@/shared/lib/ko';
 import { lazyComponentLoader } from './lazy-component.loader';
 
-ko.components.loaders.unshift(lazyComponentLoader);
+export function setupLoaders() {
+  ko.components.loaders.unshift(lazyComponentLoader);
+}

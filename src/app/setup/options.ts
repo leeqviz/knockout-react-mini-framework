@@ -1,3 +1,5 @@
 import { ko } from '@/shared/lib/ko';
 
-ko.options.deferUpdates = true;
+export function setupOptions() {
+  ko.options.deferUpdates = true;
+}
