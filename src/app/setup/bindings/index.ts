@@ -1,7 +1,9 @@
+import {
+  linkBindingHandler,
+  navigateBindingHandler,
+  reactBindingHandler,
+} from '@/app/bindings';
 import { ko } from '@/shared/lib/ko';
-import { linkBindingHandler } from './link.binding';
-import { navigateBindingHandler } from './navigate.binding';
-import { reactBindingHandler } from './react.binding';
 
 const bindingHandlers: Record<string, KnockoutBindingHandler> = {
   link: linkBindingHandler,

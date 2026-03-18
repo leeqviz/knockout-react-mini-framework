@@ -1,10 +1,16 @@
-import { registerComponent } from '@/shared/utils/ko';
 import {
   datepickerComponentMeta,
   datepickerLazyComponentMeta,
-} from './datepicker';
-import { mainComponentMeta, mainLazyComponentMeta } from './main';
-import { notFoundComponentMeta, notFoundLazyComponentMeta } from './not-found';
+} from '@/app/components/datepicker';
+import {
+  mainComponentMeta,
+  mainLazyComponentMeta,
+} from '@/app/components/main';
+import {
+  notFoundComponentMeta,
+  notFoundLazyComponentMeta,
+} from '@/app/components/not-found';
+import { registerComponent } from '@/shared/utils/ko';
 
 const components = [
   mainComponentMeta,

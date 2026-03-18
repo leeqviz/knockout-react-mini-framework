@@ -1,6 +1,8 @@
-import { BaseRouter } from './base-router';
+import { BaseRouter, type RouterOptions } from '@/shared/router';
+import { datepickerComponentMeta } from '../components/datepicker';
+import { mainComponentMeta } from '../components/main';
+import { notFoundComponentMeta } from '../components/not-found';
 import { requireAuth } from './middlewares';
-import type { RouterOptions } from './types';
 
 export class AppRouter extends BaseRouter {
   private static instance: AppRouter | null = null;
@@ -19,12 +21,12 @@ export class AppRouter extends BaseRouter {
 }
 
 export const appRouter = AppRouter.getInstance({
-  notFoundComponent: 'not-found-component',
+  notFoundComponent: notFoundComponentMeta.name,
   routes: [
-    { pattern: '/', component: 'main-component' },
+    { pattern: '/', component: mainComponentMeta.name },
     {
       pattern: '/test',
-      component: 'datepicker-component',
+      component: datepickerComponentMeta.name,
       middlewares: [requireAuth],
     },
     { pattern: '/users/:id', component: 'user-component' },

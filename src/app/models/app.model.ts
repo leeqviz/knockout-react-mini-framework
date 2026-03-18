@@ -1,3 +1,4 @@
+import { appRouter, type AppRouter } from '@/app/router';
 import {
   AppEvent,
   appEventBus,
@@ -8,7 +9,6 @@ import {
   type KnockoutObservableArrayWithDispose,
   type KnockoutObservableWithDispose,
 } from '@/shared/lib/ko';
-import { appRouter, type AppRouter } from '@/shared/router';
 import { appStore, type AppState } from '@/shared/store';
 import type { User } from '@/shared/types';
 

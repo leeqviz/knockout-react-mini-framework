@@ -1,5 +1,5 @@
+import { appRouter } from '@/app/router';
 import { ko } from '@/shared/lib/ko';
-import { appRouter } from '@/shared/router';
 
 export const linkBindingHandler: KnockoutBindingHandler = {
   init: function (element: HTMLElement) {

@@ -1,6 +1,5 @@
+import { localStorageSync, storeSync } from '@/app/extenders';
 import { ko } from '@/shared/lib/ko';
-import { localStorageSync } from './local-storage.extender';
-import { storeSync } from './zustand.extender';
 
 const extenders = {
   localStorageSync,

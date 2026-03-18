@@ -1,5 +1,5 @@
+import type { RouteMiddleware, RouteMiddlewareContext } from '@/shared/router';
 import { appStore } from '@/shared/store';
-import type { RouteMiddleware, RouteMiddlewareContext } from '../types';
 
 export const requireAuth: RouteMiddleware = (
   context: RouteMiddlewareContext,

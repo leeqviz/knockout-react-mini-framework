@@ -1,8 +1,7 @@
-export { appRouter, type AppRouter } from './app-router';
 export { RouterContext } from './context';
 export { useRouter } from './hooks';
-export { requireAdmin, requireAuth } from './middlewares';
 export { RouterProvider } from './provider';
+export { BaseRouter } from './router';
 export type {
   NavigateOptions,
   ResolvedRouteState,

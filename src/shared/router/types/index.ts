@@ -1,12 +1,10 @@
+export type { RouteMiddleware, RouteMiddlewareContext } from './middleware';
+export type { NavigateOptions } from './navigate';
 export type {
-  NavigateOptions,
   ResolvedRouteState,
   ResolveResult,
   RouteConfig,
-  RouteMiddleware,
-  RouteMiddlewareContext,
   RouteParams,
-  RouterOptions,
-  RouterSnapshot,
   SearchParamsPatch,
-} from './router';
+} from './route';
+export type { RouterOptions, RouterSnapshot } from './router';
