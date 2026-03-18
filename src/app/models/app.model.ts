@@ -13,6 +13,11 @@ import { appStore, type AppState } from '@/shared/store';
 import type { User } from '@/shared/types';
 import { BaseViewModel } from './base.model';
 
+interface ComponentBindingOptions {
+  name: string;
+  params: { withRouter: boolean };
+}
+
 // ViewModel as a shell for the entire application
 export class AppViewModel extends BaseViewModel {
   // Observable global variables
@@ -26,6 +31,7 @@ export class AppViewModel extends BaseViewModel {
 
   // client side routing
   public appRouter: AppRouter;
+  public componentBinding: KnockoutComputed<ComponentBindingOptions>;
 
   public constructor() {
     super();
@@ -69,6 +75,12 @@ export class AppViewModel extends BaseViewModel {
     );
     this.appRouter = appRouter;
     this.appRouter.start();
+    this.componentBinding = ko.pureComputed(
+      (): ComponentBindingOptions => ({
+        name: appRouter.currentComponent(),
+        params: { withRouter: true },
+      }),
+    );
 
     // Pure Computed observable is better than computed observable
     this.result = ko.pureComputed(() => this.count() + ' ' + this.date());

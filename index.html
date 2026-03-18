@@ -21,12 +21,7 @@
         </div>
       </nav>
 
-      <main
-        data-bind="component: {
-            name: appRouter.currentComponent,
-            params: { withRouter: true }
-          }"
-      ></main>
+      <main data-bind="component: componentBinding"></main>
 
       <div class="knockout-app">
         <h2>Knockout app</h2>
