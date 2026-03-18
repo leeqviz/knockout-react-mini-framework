@@ -1,17 +1,12 @@
 import type { KnockoutComponentMeta } from '@/shared/lib/ko';
 import { datepickerComponent } from './datepicker.component';
-import type { DatepickerViewModel } from './datepicker.model';
 
-export const datepickerComponentMeta: KnockoutComponentMeta<
-  typeof DatepickerViewModel
-> = {
+export const datepickerComponentMeta: KnockoutComponentMeta = {
   name: 'datepicker-component',
   component: datepickerComponent,
 };
 
-export const datepickerLazyComponentMeta: KnockoutComponentMeta<
-  typeof DatepickerViewModel
-> = {
+export const datepickerLazyComponentMeta: KnockoutComponentMeta = {
   name: 'datepicker-lazy-component',
   lazy: () =>
     import('./datepicker.component').then((res) => ({

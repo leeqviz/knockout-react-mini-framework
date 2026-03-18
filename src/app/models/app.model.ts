@@ -11,9 +11,10 @@ import {
 } from '@/shared/lib/ko';
 import { appStore, type AppState } from '@/shared/store';
 import type { User } from '@/shared/types';
+import { BaseViewModel } from './base.model';
 
 // ViewModel as a shell for the entire application
-export class AppViewModel {
+export class AppViewModel extends BaseViewModel {
   // Observable global variables
   public count: KnockoutObservableWithDispose<number>;
   public date: KnockoutObservableWithDispose<string>;
@@ -27,6 +28,7 @@ export class AppViewModel {
   public appRouter: AppRouter;
 
   public constructor() {
+    super();
     // Initialize observables with default values
     this.count = ko.observable<number>(appStore.getState().count).extend({
       storeSync: {

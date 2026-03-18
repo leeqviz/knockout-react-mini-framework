@@ -1,7 +1,4 @@
-export type {
-  KnockoutComponentMeta,
-  ReactComponentViewModelParams,
-} from './component';
+export type { KnockoutComponentMeta } from './component';
 export type {
   KnockoutObservableArrayWithDispose,
   KnockoutObservableWithDispose,

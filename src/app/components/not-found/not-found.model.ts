@@ -1,5 +1,9 @@
-export class NotFoundViewModel {
-  public constructor() {}
+import { BaseViewModel } from '@/app/models';
 
-  public dispose() {}
+export class NotFoundViewModel extends BaseViewModel {
+  public constructor() {
+    super();
+  }
+
+  public override dispose() {}
 }
