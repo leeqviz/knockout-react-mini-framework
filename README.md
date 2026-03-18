@@ -20,7 +20,7 @@ A hybrid web application that exemplifies the embedding of independent React com
 
 1. **Bundler**: Vite
 2. **Language**: JavaScript, TypeScript _(Strict Mode)_
-3. **Infrastructure**: Knockout.js
+3. **Infrastructure**: Knockout.js _(v3.5.2)_
 4. **UI**: React _(v19)_, jQuery _(v4)_
 5. **Global State Manager**: Zustand
 6. **Linter**: ESLint _(v9 Flat Config)_
@@ -45,17 +45,30 @@ A custom binding mechanism is used to render React components within an applicat
 ```text
 ├── public/
 ├── src/
-│ ├── lib/ # business logic and shared logic
-│ ├── modules/ # independent React modules
-│ ├── stores/
-│ ├── tests/
-│ ├── types/
-│ ├── utils/
-│ ├── index.css
-│ └── index.ts
+│ ├── app/ # knockout setup
+│ │ ├── bindings/
+│ │ ├── components/
+│ │ ├── extenders/
+│ │ ├── loaders/
+│ │ ├── models/
+│ │ ├── router/
+│ │ ├── setup/
+│ │ ├── styles/
+│ │ └── index.ts
+│ ├── modules/ # independent React modules which can be structured using FSD
+│ ├── tests/ # files which are important for test environment setup
+│ ├── shared/ # reusable logic
+│ │ ├── event-bus/
+│ │ ├── lib/
+│ │ ├── router/
+│ │ ├── store/
+│ │ ├── types/
+│ │ ├── ui/
+│ │ └── utils/
+│ └── index.ts # main script
 ├── .prettierrc
-├── eslint.config.js
 ├── app.d.ts
+├── eslint.config.js
 ├── index.html
 ├── nginx.conf
 ├── package.json
@@ -88,5 +101,5 @@ Node version must be 22+
 
 The project is configured for maximum load performance:
 
-- Vendor Splitting: Vite automatically splits third-party dependencies into separate chunks (react-vendor, knockout-vendor, jquery-vendor).
+- Vendor Splitting: Vite automatically splits third-party dependencies into separate chunks (react-vendor, knockout-vendor, jquery-vendor, zustand-vendor).
 - Caching: All files in the dist/assets/ folder have unique hashes in their names. On the server (Nginx), they are cached for 1 year (Cache-Control: immutable). The main index.html file is never cached.

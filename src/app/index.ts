@@ -1,9 +1,11 @@
-import { setupBindings } from './setup/bindings';
-import { setupComponents } from './setup/components';
-import { setupExtenders } from './setup/extenders';
-import { setupLoaders } from './setup/loaders';
-import { setupModels } from './setup/models';
-import { setupOptions } from './setup/options';
+import {
+  setupBindings,
+  setupComponents,
+  setupExtenders,
+  setupLoaders,
+  setupModels,
+  setupOptions,
+} from './setup';
 import './styles/index.css';
 
 // order is important
