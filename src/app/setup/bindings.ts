@@ -5,7 +5,7 @@ import {
 } from '@/app/bindings';
 import { ko } from '@/shared/lib/ko';
 
-const bindingHandlers: Record<string, KnockoutBindingHandler> = {
+const bindingHandlers = {
   link: linkBindingHandler,
   navigate: navigateBindingHandler,
   reactMain: reactBindingHandler,

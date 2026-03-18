@@ -1,1 +1,2 @@
-export { registerComponent } from './components';
+export { registerComponent } from './component';
+export { applyBindings } from './model';
