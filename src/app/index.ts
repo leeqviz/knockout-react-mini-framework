@@ -6,9 +6,10 @@ import { setupModels } from './setup/models';
 import { setupOptions } from './setup/options';
 import './styles/index.css';
 
+// order is important
+setupOptions(); // apply custom knockout options
+setupLoaders(); // apply custom knockout loaders
+setupExtenders(); // apply custom knockout extenders
 setupBindings(); // apply custom knockout bindings
 setupComponents(); // apply custom knockout components
-setupExtenders(); // apply custom knockout extenders
-setupLoaders(); // apply custom knockout loaders
-setupOptions(); // apply custom knockout options
 setupModels(); // apply custom knockout models
