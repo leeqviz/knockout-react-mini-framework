@@ -1,13 +1,14 @@
-import type { NavigateOptions } from './navigate';
+import type { ResolveResult } from './route';
 
 export interface RouteMiddlewareContext {
-  navigate: (path: string, options?: NavigateOptions) => void;
   fullPath: string;
   pathname: string;
   search: string;
   state: unknown;
 }
 
+export type RouteMiddlewareResult = void | ResolveResult;
+
 export type RouteMiddleware = (
   context: RouteMiddlewareContext,
-) => boolean | string | void;
+) => RouteMiddlewareResult;

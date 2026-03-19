@@ -9,6 +9,7 @@ export type {
   RouteConfig,
   RouteMiddleware,
   RouteMiddlewareContext,
+  RouteMiddlewareResult,
   RouteParams,
   RouterOptions,
   RouterSnapshot,

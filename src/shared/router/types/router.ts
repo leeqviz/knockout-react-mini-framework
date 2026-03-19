@@ -1,10 +1,14 @@
 import type { RouteMiddleware } from './middleware';
-import type { NavigateOptions } from './navigate';
 import type { RouteConfig, RouteParams, SearchParamsPatch } from './route';
 
 export interface RouterOptions {
   routes: RouteConfig[];
   middlewares?: RouteMiddleware[] | undefined;
+}
+
+export interface NavigateOptions {
+  replace?: boolean | undefined;
+  state?: unknown;
 }
 
 export interface RouterSnapshot {

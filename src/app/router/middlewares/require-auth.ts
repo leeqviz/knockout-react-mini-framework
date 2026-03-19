@@ -1,9 +1,13 @@
-import type { RouteMiddleware, RouteMiddlewareContext } from '@/shared/router';
+import type {
+  RouteMiddleware,
+  RouteMiddlewareContext,
+  RouteMiddlewareResult,
+} from '@/shared/router';
 import { appStore } from '@/shared/store';
 
 export const requireAuth: RouteMiddleware = (
   context: RouteMiddlewareContext,
-) => {
+): RouteMiddlewareResult => {
   const isAuth = appStore.getState().isAuth;
   if (!isAuth) {
     console.warn(
@@ -12,8 +16,6 @@ export const requireAuth: RouteMiddleware = (
 
     const redirectUrl = encodeURIComponent(context.fullPath);
 
-    context.navigate(`/login?redirectTo=${redirectUrl}`);
-    return false;
+    return { type: 'redirect', to: `/login?redirectTo=${redirectUrl}` };
   }
-  return true;
 };

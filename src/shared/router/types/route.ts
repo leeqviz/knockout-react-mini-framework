@@ -23,6 +23,6 @@ export interface ResolvedRouteState {
 }
 
 export type ResolveResult =
-  | { type: 'blocked' }
+  | { type: 'blocked'; reason?: string }
   | { type: 'redirect'; to: string }
   | { type: 'resolved'; value: ResolvedRouteState };

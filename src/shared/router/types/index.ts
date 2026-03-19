@@ -1,5 +1,8 @@
-export type { RouteMiddleware, RouteMiddlewareContext } from './middleware';
-export type { NavigateOptions } from './navigate';
+export type {
+  RouteMiddleware,
+  RouteMiddlewareContext,
+  RouteMiddlewareResult,
+} from './middleware';
 export type {
   ResolvedRouteState,
   ResolveResult,
@@ -7,4 +10,4 @@ export type {
   RouteParams,
   SearchParamsPatch,
 } from './route';
-export type { RouterOptions, RouterSnapshot } from './router';
+export type { NavigateOptions, RouterOptions, RouterSnapshot } from './router';

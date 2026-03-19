@@ -1,10 +1,9 @@
-import type { RouteMiddleware } from '@/shared/router';
+import type { RouteMiddleware, RouteMiddlewareResult } from '@/shared/router';
 import { appStore } from '@/shared/store';
 
-export const requireAdmin: RouteMiddleware = () => {
+export const requireAdmin: RouteMiddleware = (): RouteMiddlewareResult => {
   const user = appStore.getState().user;
   if (!user?.roles?.includes('admin')) {
-    return '/403';
+    return { type: 'redirect', to: '/403' };
   }
-  return true;
 };

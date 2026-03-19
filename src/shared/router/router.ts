@@ -5,6 +5,7 @@ import type {
   ResolveResult,
   RouteConfig,
   RouteMiddleware,
+  RouteMiddlewareResult,
   RouteParams,
   RouterOptions,
   RouterSnapshot,
@@ -13,7 +14,7 @@ import type {
 
 export class BaseRouter {
   protected routes: RouteConfig[];
-  protected globalMiddlewares: RouteMiddleware[];
+  protected middlewares: RouteMiddleware[];
   protected isStarted: boolean = false;
 
   public currentComponent: KnockoutObservable<string>;
@@ -44,7 +45,7 @@ export class BaseRouter {
     this.resolveTo = this.resolveTo.bind(this);
 
     this.routes = this.rankRoutes(options?.routes ?? []);
-    this.globalMiddlewares = options?.middlewares || [];
+    this.middlewares = options?.middlewares || [];
 
     const initialUrl = new URL(window.location.href);
 
@@ -208,27 +209,19 @@ export class BaseRouter {
   protected resolvePath(fullPath: string, state: unknown): ResolveResult {
     const { pathname, search, searchParams } = this.parseFullPath(fullPath);
 
-    const globalMiddlewareResult = this.runMiddlewares(this.globalMiddlewares, {
+    const globalMiddlewareResult = this.runMiddlewares(this.middlewares, {
       fullPath,
       pathname,
       search,
       state,
     });
 
-    if (globalMiddlewareResult === false) {
-      return { type: 'blocked' };
-    }
-
-    if (typeof globalMiddlewareResult === 'string') {
-      return { type: 'redirect', to: globalMiddlewareResult };
-    }
+    if (globalMiddlewareResult) return globalMiddlewareResult;
 
     for (const route of this.routes) {
       const match = this.matchRoute(route.pattern, pathname);
 
-      if (!match) {
-        continue;
-      }
+      if (!match) continue;
 
       const middlewareResult = this.runMiddlewares(route.middlewares ?? [], {
         fullPath,
@@ -237,13 +230,7 @@ export class BaseRouter {
         state,
       });
 
-      if (middlewareResult === false) {
-        return { type: 'blocked' };
-      }
-
-      if (typeof middlewareResult === 'string') {
-        return { type: 'redirect', to: middlewareResult };
-      }
+      if (middlewareResult) return middlewareResult;
 
       return {
         type: 'resolved',
@@ -338,19 +325,16 @@ export class BaseRouter {
       search: string;
       state: unknown;
     },
-  ): boolean | string | void {
+  ): RouteMiddlewareResult {
     for (const middleware of middlewares) {
       const result = middleware({
-        navigate: this.navigate,
         fullPath: context.fullPath,
         pathname: context.pathname,
         search: context.search,
         state: context.state,
       });
 
-      if (result === false || typeof result === 'string') {
-        return result;
-      }
+      if (result) return result;
     }
   }
 
