@@ -1,6 +1,6 @@
 import { ko } from '@/shared/lib/ko';
 import { isPlainObject } from '@/shared/utils/validators';
-import { createElement, type ComponentType, type ElementType } from 'react';
+import { createElement, type ElementType } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
 // Extends HTMLElement to add _reactRoot property
@@ -10,7 +10,7 @@ interface HTMLElementWithReactRoot extends HTMLElement {
 
 // Custom binding configuration
 export interface ReactBindingOptions<T = unknown> {
-  component?: ElementType<T> | ComponentType<T> | undefined;
+  component?: ElementType<T> | undefined;
   props?: (Record<string, unknown> & T) | undefined;
   deepUnwrap?: boolean | undefined; // for deep unwrapping of nested observables, if needed
 }

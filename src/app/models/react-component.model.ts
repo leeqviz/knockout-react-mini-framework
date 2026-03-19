@@ -12,7 +12,7 @@ export abstract class ReactComponentViewModel<
   T = ReactComponentProps,
 > extends BaseViewModel {
   protected abstract computedProps: KnockoutComputed<T>;
-  public abstract binding: ReactBindingOptions<T>;
+  public abstract bindingOptions: ReactBindingOptions<T>;
 
   public constructor() {
     super();
@@ -27,9 +27,9 @@ export interface ReactComponentWithRouterViewModelParams {
   withRouter?: boolean | undefined;
 }
 
-type ReactComponentPropsWithRouter = ReactComponentProps & {
+interface ReactComponentPropsWithRouter extends ReactComponentProps {
   router: RouterSnapshot | null;
-};
+}
 
 export abstract class ReactComponentWithRouterViewModel extends ReactComponentViewModel<ReactComponentPropsWithRouter> {
   protected computedProps: KnockoutComputed<ReactComponentPropsWithRouter>;
@@ -37,8 +37,10 @@ export abstract class ReactComponentWithRouterViewModel extends ReactComponentVi
   public constructor(params: ReactComponentWithRouterViewModelParams) {
     super();
     // pureComputed guarantees that the function will only be called when the observable changes
-    this.computedProps = ko.pureComputed(() => ({
-      router: params.withRouter ? appRouter.getSnapshot() : null,
-    }));
+    this.computedProps = ko.pureComputed(
+      (): ReactComponentPropsWithRouter => ({
+        router: params.withRouter ? appRouter.getSnapshot() : null,
+      }),
+    );
   }
 }

@@ -6,11 +6,11 @@ import {
 import { MainEntryPointLazy, type MainEntryPointProps } from '@/modules/main';
 
 export class MainViewModel extends ReactComponentWithRouterViewModel {
-  public binding: ReactBindingOptions<MainEntryPointProps>;
+  public bindingOptions: ReactBindingOptions<MainEntryPointProps>;
 
   public constructor(params: ReactComponentWithRouterViewModelParams) {
     super(params);
-    this.binding = {
+    this.bindingOptions = {
       component: MainEntryPointLazy,
       props: this.computedProps(),
     };

@@ -9,11 +9,11 @@ import {
 } from '@/modules/datepicker';
 
 export class DatepickerViewModel extends ReactComponentWithRouterViewModel {
-  public binding: ReactBindingOptions<DatepickerEntryPointProps>;
+  public bindingOptions: ReactBindingOptions<DatepickerEntryPointProps>;
 
   public constructor(params: ReactComponentWithRouterViewModelParams) {
     super(params);
-    this.binding = {
+    this.bindingOptions = {
       component: DatepickerEntryPointLazy,
       props: this.computedProps(),
     };
