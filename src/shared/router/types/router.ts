@@ -4,7 +4,6 @@ import type { RouteConfig, RouteParams, SearchParamsPatch } from './route';
 
 export interface RouterOptions {
   routes: RouteConfig[];
-  notFoundComponent: string;
   middlewares?: RouteMiddleware[] | undefined;
 }
 

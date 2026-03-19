@@ -13,7 +13,6 @@ import type {
 
 export class BaseRouter {
   protected routes: RouteConfig[];
-  protected notFoundComponent: string;
   protected globalMiddlewares: RouteMiddleware[];
   protected isStarted: boolean = false;
 
@@ -44,16 +43,13 @@ export class BaseRouter {
     this.resolvePath = this.resolvePath.bind(this);
     this.resolveTo = this.resolveTo.bind(this);
 
-    this.routes = this.rankRoutes(options?.routes ?? this.getDefaultRoutes());
+    this.routes = this.rankRoutes(options?.routes ?? []);
     this.globalMiddlewares = options?.middlewares || [];
-    this.notFoundComponent =
-      options?.notFoundComponent ?? this.getDefaultNotFoundComponent();
 
     const initialUrl = new URL(window.location.href);
 
     this.currentComponent = ko.observable<string>(
-      this.routes.find((route) => route.pattern === '/')?.component ??
-        this.notFoundComponent,
+      this.routes.find((route) => route.pattern === '/')?.component ?? '',
     );
     this.currentParams = ko.observable<RouteParams>({});
     this.currentPathname = ko.observable<string>(
@@ -64,14 +60,6 @@ export class BaseRouter {
       Object.fromEntries(initialUrl.searchParams.entries()),
     );
     this.currentHistoryState = ko.observable(window.history.state ?? null);
-  }
-
-  protected getDefaultRoutes(): RouteConfig[] {
-    return [];
-  }
-
-  protected getDefaultNotFoundComponent(): string {
-    return '';
   }
 
   public start(): void {
@@ -275,7 +263,7 @@ export class BaseRouter {
       value: {
         pathname,
         search,
-        component: this.notFoundComponent,
+        component: '',
         params: {},
         searchParams,
         state,
