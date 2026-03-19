@@ -16,19 +16,19 @@ export class ErrorBoundary extends Component<
 > {
   public override state: ErrorBoundaryState = { hasError: false };
 
-  public static getDerivedStateFromError(): ErrorBoundaryState {
+  public static getDerivedStateFromError = (): ErrorBoundaryState => {
     return { hasError: true };
-  }
+  };
 
-  public override componentDidCatch(error: Error, info: ErrorInfo) {
+  public override componentDidCatch = (error: Error, info: ErrorInfo) => {
     console.error(
       `Error in component ${this.props.name || 'Unknown'}:`,
       error,
       info,
     );
-  }
+  };
 
-  public override render() {
+  public override render = () => {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
@@ -54,5 +54,5 @@ export class ErrorBoundary extends Component<
       }
     }
     return this.props.children;
-  }
+  };
 }

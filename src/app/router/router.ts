@@ -8,13 +8,13 @@ export class AppRouter extends BaseRouter {
     super(options);
   }
 
-  public static getInstance(options: RouterOptions): AppRouter {
+  public static getInstance = (options: RouterOptions): AppRouter => {
     if (!AppRouter.instance) {
       AppRouter.instance = new AppRouter(options);
     }
 
     return AppRouter.instance;
-  }
+  };
 }
 
 export const appRouter = AppRouter.getInstance({

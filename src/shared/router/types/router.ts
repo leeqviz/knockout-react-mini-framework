@@ -2,7 +2,7 @@ import type { RouteMiddleware } from './middleware';
 import type { RouteConfig, RouteParams, SearchParamsPatch } from './route';
 
 export interface RouterOptions {
-  routes: RouteConfig[];
+  routes?: RouteConfig[] | undefined;
   middlewares?: RouteMiddleware[] | undefined;
 }
 

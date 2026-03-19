@@ -13,9 +13,9 @@ export abstract class ReactComponentViewModel<
     super();
   }
 
-  public dispose() {
+  public dispose = () => {
     this.bindingOptions.dispose();
-  }
+  };
 }
 
 export interface ReactComponentWithRouterViewModelParams {

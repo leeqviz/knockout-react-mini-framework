@@ -5,5 +5,5 @@ export class NotFoundViewModel extends BaseViewModel {
     super();
   }
 
-  public override dispose() {}
+  public override dispose = () => {};
 }

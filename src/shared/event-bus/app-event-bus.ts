@@ -8,13 +8,13 @@ export class AppEventBus extends BaseEventBus<AppEventPayloadMap> {
     super();
   }
 
-  public static getInstance(): AppEventBus {
+  public static getInstance = (): AppEventBus => {
     if (!AppEventBus.instance) {
       AppEventBus.instance = new AppEventBus();
     }
 
     return AppEventBus.instance;
-  }
+  };
 }
 
 export const appEventBus = AppEventBus.getInstance();

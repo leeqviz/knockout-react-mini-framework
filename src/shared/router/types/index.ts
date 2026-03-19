@@ -4,8 +4,13 @@ export type {
   RouteMiddlewareResult,
 } from './middleware';
 export type {
+  BlockedResult,
+  ErrorResult,
+  RedirectResult,
+  ResolvedResult,
   ResolvedRouteState,
   ResolveResult,
+  RewriteResult,
   RouteConfig,
   RouteParams,
   SearchParamsPatch,

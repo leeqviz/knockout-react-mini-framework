@@ -82,16 +82,9 @@ export class AppViewModel extends BaseViewModel {
 
     // Pure Computed observable is better than computed observable
     this.result = ko.pureComputed(() => this.count() + ' ' + this.date());
-
-    // Important because we can put these methods in react components as props
-    this.setCount = this.setCount.bind(this);
-    this.setDate = this.setDate.bind(this);
-    this.addUser = this.addUser.bind(this);
-    this.logToConsole = this.logToConsole.bind(this);
-    this.dispose = this.dispose.bind(this);
   }
 
-  public dispose() {
+  public dispose = () => {
     this.theme.dispose?.();
     this.count.dispose?.();
     this.date.dispose?.();
@@ -102,21 +95,23 @@ export class AppViewModel extends BaseViewModel {
 
     this.eventSubscription.dispose();
     appRouter.dispose();
-  }
+  };
 
-  private logToConsole(payload: AppEventPayloadMap['react/component-render']) {
+  private logToConsole = (
+    payload: AppEventPayloadMap['react/component-render'],
+  ) => {
     console.log(`Component is ready: ${payload.name}`);
-  }
+  };
 
-  public setCount(value: number) {
+  public setCount = (value: number) => {
     this.count(value);
-  }
+  };
 
-  public setDate(value: string) {
+  public setDate = (value: string) => {
     this.date(value);
-  }
+  };
 
-  public addUser() {
+  public addUser = () => {
     appStore.getState().addUser('Knockout User');
-  }
+  };
 }

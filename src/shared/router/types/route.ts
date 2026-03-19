@@ -23,9 +23,36 @@ export interface ResolvedRouteState {
   state: unknown;
 }
 
+export type BlockedResult = {
+  type: typeof ResolveResultType.Blocked;
+  reason?: string;
+};
+
+export type RedirectResult = {
+  type: typeof ResolveResultType.Redirect;
+  to: string;
+  replace?: boolean;
+};
+
+export type RewriteResult = {
+  type: typeof ResolveResultType.Rewrite;
+  to: string;
+  replace?: boolean;
+};
+
+export type ErrorResult = {
+  type: typeof ResolveResultType.Error;
+  error: Error;
+};
+
+export type ResolvedResult = {
+  type: typeof ResolveResultType.Resolved;
+  value: ResolvedRouteState;
+};
+
 export type ResolveResult =
-  | { type: typeof ResolveResultType.Blocked; reason?: string }
-  | { type: typeof ResolveResultType.Redirect; to: string; replace?: boolean }
-  | { type: typeof ResolveResultType.Rewrite; to: string; replace?: boolean }
-  | { type: typeof ResolveResultType.Resolved; value: ResolvedRouteState }
-  | { type: typeof ResolveResultType.Error; error: Error };
+  | BlockedResult
+  | RedirectResult
+  | RewriteResult
+  | ResolvedResult
+  | ErrorResult;
