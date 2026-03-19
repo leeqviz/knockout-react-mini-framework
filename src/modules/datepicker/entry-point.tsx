@@ -1,4 +1,4 @@
-import { RouterProvider } from '@/shared/router/components/providers';
+import { RouterProvider } from '@/shared/router/components/provider';
 import type { RouterSnapshot } from '@/shared/router/types';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
 import { DatepickerContainer } from './components/datepicker-container';

@@ -2,13 +2,13 @@ import { appRouter } from '@/app/router';
 import { ko } from '@/shared/lib/ko';
 
 export const navigateBindingHandler: KnockoutBindingHandler = {
-  init: function (element: HTMLElement, valueAccessor: () => string) {
+  init: function (element: HTMLElement, valueAccessor: () => unknown) {
     function onClick(e: MouseEvent) {
       e.preventDefault();
 
       const path = ko.unwrap(valueAccessor());
 
-      if (path) {
+      if (path && typeof path === 'string') {
         appRouter.navigate(path);
       }
     }
@@ -18,7 +18,7 @@ export const navigateBindingHandler: KnockoutBindingHandler = {
       element.removeEventListener('click', onClick);
     });
   },
-  update: function (element: HTMLElement, valueAccessor: () => string) {
+  update: function (element: HTMLElement, valueAccessor: () => unknown) {
     const targetPath = ko.unwrap(valueAccessor());
 
     const currentPath = appRouter.currentPathname();

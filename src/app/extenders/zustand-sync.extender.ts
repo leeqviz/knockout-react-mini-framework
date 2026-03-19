@@ -1,14 +1,14 @@
 import type {
   KnockoutObservableArrayWithDispose,
   KnockoutObservableWithDispose,
-  StoreSyncConfig,
+  ZustandSyncConfig,
 } from '@/shared/lib/ko';
 
-export function storeSync<TState, TSlice>(
+export function zustandSync<TState, TSlice>(
   target:
     | KnockoutObservableWithDispose<TSlice>
     | KnockoutObservableArrayWithDispose<TSlice>,
-  options: StoreSyncConfig<TState, TSlice>,
+  options: ZustandSyncConfig<TState, TSlice>,
 ):
   | KnockoutObservableWithDispose<TSlice>
   | KnockoutObservableArrayWithDispose<TSlice> {

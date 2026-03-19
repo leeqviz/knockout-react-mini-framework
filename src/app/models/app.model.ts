@@ -10,7 +10,7 @@ import {
   type KnockoutObservableWithDispose,
 } from '@/shared/lib/ko';
 import { appStore, type AppState } from '@/shared/store';
-import type { User } from '@/shared/types';
+import type { Theme, User } from '@/shared/types';
 import { BaseViewModel } from './base.model';
 
 interface ComponentBindingOptions {
@@ -24,7 +24,7 @@ export class AppViewModel extends BaseViewModel {
   public count: KnockoutObservableWithDispose<number>;
   public date: KnockoutObservableWithDispose<string>;
   public users: KnockoutObservableArrayWithDispose<User>;
-  public theme: KnockoutObservableWithDispose<'light' | 'dark'>;
+  public theme: KnockoutObservableWithDispose<Theme>;
   public result: KnockoutComputed<string>;
 
   private eventSubscription: KnockoutSubscription;
@@ -37,33 +37,31 @@ export class AppViewModel extends BaseViewModel {
     super();
     // Initialize observables with default values
     this.count = ko.observable<number>(appStore.getState().count).extend({
-      storeSync: {
+      zustandSync: {
         store: appStore,
         selector: (state: AppState) => state.count,
         setter: (newCount: number) => appStore.getState().setCount(newCount),
       },
     });
     this.date = ko.observable<string>(appStore.getState().date).extend({
-      storeSync: {
+      zustandSync: {
         store: appStore,
         selector: (state: AppState) => state.date,
         setter: (newDate: string) => appStore.getState().setDate(newDate),
       },
     });
     this.users = ko.observableArray(appStore.getState().users).extend({
-      storeSync: {
+      zustandSync: {
         store: appStore,
         selector: (state: AppState) => state.users,
         setter: (newUser: string) => appStore.getState().addUser(newUser),
       },
     });
-
     this.theme = ko.observable(appStore.getState().theme).extend({
-      storeSync: {
+      zustandSync: {
         store: appStore,
         selector: (state: AppState) => state.theme,
-        setter: (newTheme: 'light' | 'dark') =>
-          appStore.getState().setTheme(newTheme),
+        setter: (newTheme: Theme) => appStore.getState().setTheme(newTheme),
       },
     });
 

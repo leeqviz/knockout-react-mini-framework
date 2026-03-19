@@ -1,12 +1,17 @@
 import { useRouter } from '@/shared/router';
 import React, { type AnchorHTMLAttributes } from 'react';
 
-interface LinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
+interface RouterLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   to: string;
   replace?: boolean | undefined;
 }
 
-export function Link({ to, replace, children, ...rest }: LinkProps) {
+export function RouterLink({
+  to,
+  replace,
+  children,
+  ...rest
+}: RouterLinkProps) {
   const { navigate } = useRouter();
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {

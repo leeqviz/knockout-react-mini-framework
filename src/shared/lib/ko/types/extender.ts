@@ -1,6 +1,6 @@
 import type { StoreApi } from 'zustand';
 
-export interface StoreSyncConfig<TState, TSlice> {
+export interface ZustandSyncConfig<TState, TSlice> {
   store: StoreApi<TState>;
   selector: (state: TState) => TSlice;
   setter?: (newValue: TSlice) => Partial<TState> | void;

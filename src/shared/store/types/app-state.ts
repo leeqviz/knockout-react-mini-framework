@@ -1,4 +1,4 @@
-import type { User } from '@/shared/types';
+import type { Theme, User } from '@/shared/types';
 
 export interface AppStateData {
   isAuth: boolean;
@@ -6,7 +6,7 @@ export interface AppStateData {
   count: number;
   date: string;
   users: User[];
-  theme: 'light' | 'dark';
+  theme: Theme;
 }
 
 export interface AppStateActions {
@@ -15,7 +15,7 @@ export interface AppStateActions {
   setCount: (value: number) => void;
   setDate: (value: string) => void;
   addUser: (name: string) => void;
-  setTheme: (value: 'light' | 'dark') => void;
+  setTheme: (value: Theme) => void;
 }
 
 export type AppState = AppStateData & AppStateActions;

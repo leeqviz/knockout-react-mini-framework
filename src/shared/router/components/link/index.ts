@@ -1,1 +1,1 @@
-export { Link } from './link';
+export { RouterLink } from './router-link';

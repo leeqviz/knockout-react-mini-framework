@@ -1,2 +1,2 @@
-export { localStorageSync } from './local-storage.extender';
-export { storeSync } from './zustand.extender';
+export { localStorageSync } from './local-storage-sync.extender';
+export { zustandSync } from './zustand-sync.extender';

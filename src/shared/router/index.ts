@@ -1,4 +1,4 @@
-export { Link, RouterProvider } from './components';
+export { RouterLink, RouterProvider } from './components';
 export { useRouter } from './hooks';
 export { BaseRouter } from './router';
 export { RouterContext } from './router-context';
