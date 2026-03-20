@@ -20,6 +20,7 @@ import type {
   ScrollBehaviorFn,
   ScrollPosition,
   ScrollTarget,
+  SearchParams,
   SearchParamsPatch,
   StateCompareStrategy,
 } from './types';
@@ -38,7 +39,7 @@ export class BaseRouter {
   public currentParams: KnockoutObservable<RouteParams>;
   public currentPathname: KnockoutObservable<string>;
   public currentSearch: KnockoutObservable<string>;
-  public currentSearchParams: KnockoutObservable<RouteParams>;
+  public currentSearchParams: KnockoutObservable<SearchParams>;
   public currentHistoryState: KnockoutObservable<unknown>;
   public currentHash: KnockoutObservable<string>;
 
@@ -133,7 +134,7 @@ export class BaseRouter {
     );
     this.currentSearch = ko.observable(initialUrl.search);
     this.currentSearchParams = ko.observable(
-      Object.fromEntries(initialUrl.searchParams.entries()),
+      this.parseUrl(initialUrl).searchParams,
     );
     this.currentHistoryState = ko.observable(window.history.state ?? null);
     this.currentHash = ko.observable(initialUrl.hash);
@@ -305,7 +306,7 @@ export class BaseRouter {
     return this.normalizePath(url.pathname) + url.search;
   };
 
-  public setSearchParams = (
+  /* public setSearchParams = (
     newParams: SearchParamsPatch,
     options?: NavigateOptions,
   ): void => {
@@ -323,7 +324,7 @@ export class BaseRouter {
       replace: options?.replace ?? true,
       state: options?.state ?? this.currentHistoryState(),
     });
-  };
+  }; */
 
   public getSnapshot = (): RouterSnapshot => {
     return {
@@ -336,7 +337,14 @@ export class BaseRouter {
         search: this.currentSearch(),
         state: this.currentHistoryState(),
       },
-      setSearchParams: this.setSearchParams,
+      setSearchParam: this.setSearchParam,
+      appendSearchParam: this.appendSearchParam,
+      deleteSearchParam: this.deleteSearchParam,
+      patchSearchParams: this.patchSearchParams,
+      replaceAllSearchParams: this.replaceAllSearchParams,
+      getSearchParam: this.getSearchParam,
+      getAllSearchParams: this.getAllSearchParams,
+      hasSearchParam: this.hasSearchParam,
     };
   };
 
@@ -415,7 +423,7 @@ export class BaseRouter {
       pathname: string;
       search: string;
       hash: string;
-      searchParams: RouteParams;
+      searchParams: SearchParams;
     },
     rewriteTo: string,
     state: unknown,
@@ -549,13 +557,26 @@ export class BaseRouter {
   ): {
     pathname: string;
     search: string;
-    searchParams: RouteParams;
+    searchParams: SearchParams;
     hash: string;
   } => {
+    const searchParams: SearchParams = {};
+
+    url.searchParams.forEach((value, key) => {
+      const existing = searchParams[key];
+      if (existing === undefined) {
+        searchParams[key] = value;
+      } else if (Array.isArray(existing)) {
+        existing.push(value);
+      } else {
+        searchParams[key] = [existing, value];
+      }
+    });
+
     return {
       pathname: this.normalizePath(url.pathname),
       search: url.search,
-      searchParams: Object.fromEntries(url.searchParams.entries()),
+      searchParams,
       hash: url.hash,
     };
   };
@@ -866,5 +887,118 @@ export class BaseRouter {
       savedPosition,
     );
     this.applyScrollTarget(target);
+  };
+
+  protected getCurrentSearchInstance = (): URLSearchParams => {
+    return new URLSearchParams(this.currentSearch());
+  };
+
+  protected buildUrlWithSearch = (search: URLSearchParams): string => {
+    const path =
+      this.currentPathname() +
+      (search.toString() ? `?${search.toString()}` : '');
+    return path + this.currentHash();
+  };
+
+  public getSearchParam = (key: string): string | null => {
+    return this.getCurrentSearchInstance().get(key);
+  };
+
+  public getAllSearchParams = (key: string): string[] => {
+    return this.getCurrentSearchInstance().getAll(key);
+  };
+
+  public hasSearchParam = (key: string): boolean => {
+    return this.getCurrentSearchInstance().has(key);
+  };
+
+  public setSearchParam = (
+    key: string,
+    value: string,
+    options?: NavigateOptions,
+  ): void => {
+    const search = this.getCurrentSearchInstance();
+    search.set(key, value);
+    this.navigate(this.buildUrlWithSearch(search), {
+      replace: options?.replace ?? true,
+      state: options?.state ?? this.currentHistoryState(),
+    });
+  };
+
+  public appendSearchParam = (
+    key: string,
+    value: string,
+    options?: NavigateOptions,
+  ): void => {
+    const search = this.getCurrentSearchInstance();
+    search.append(key, value);
+    this.navigate(this.buildUrlWithSearch(search), {
+      replace: options?.replace ?? true,
+      state: options?.state ?? this.currentHistoryState(),
+    });
+  };
+
+  public deleteSearchParam = (
+    key: string,
+    value?: string,
+    options?: NavigateOptions,
+  ): void => {
+    const search = this.getCurrentSearchInstance();
+
+    if (value !== undefined) {
+      const remaining = search.getAll(key).filter((v) => v !== value);
+      search.delete(key);
+      remaining.forEach((v) => search.append(key, v));
+    } else {
+      search.delete(key);
+    }
+
+    this.navigate(this.buildUrlWithSearch(search), {
+      replace: options?.replace ?? true,
+      state: options?.state ?? this.currentHistoryState(),
+    });
+  };
+
+  public patchSearchParams = (
+    patch: SearchParamsPatch,
+    options?: NavigateOptions,
+  ): void => {
+    const search = this.getCurrentSearchInstance();
+
+    Object.entries(patch).forEach(([key, value]) => {
+      if (value === null || value === undefined) {
+        search.delete(key);
+      } else if (Array.isArray(value)) {
+        search.delete(key);
+        value.forEach((v) => search.append(key, v));
+      } else {
+        search.set(key, value);
+      }
+    });
+
+    this.navigate(this.buildUrlWithSearch(search), {
+      replace: options?.replace ?? true,
+      state: options?.state ?? this.currentHistoryState(),
+    });
+  };
+
+  public replaceAllSearchParams = (
+    params: SearchParams,
+    options?: NavigateOptions,
+  ): void => {
+    const search = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        value.forEach((v) => search.append(key, v));
+      } else {
+        search.set(key, value);
+      }
+    });
+
+    this.navigate(this.buildUrlWithSearch(search), {
+      replace: options?.replace ?? true,
+      state: options?.state ?? this.currentHistoryState(),
+    });
   };
 }

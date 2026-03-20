@@ -13,7 +13,9 @@ export type {
   RewriteResult,
   RouteConfig,
   RouteParams,
+  SearchParams,
   SearchParamsPatch,
+  SearchParamValue,
 } from './route';
 export type {
   InternalHistoryState,

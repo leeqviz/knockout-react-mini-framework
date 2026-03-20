@@ -3,6 +3,7 @@ import type {
   ResolvedRouteState,
   RouteConfig,
   RouteParams,
+  SearchParams,
   SearchParamsPatch,
 } from './route';
 
@@ -29,17 +30,39 @@ export interface NavigateOptions {
 export interface RouterSnapshot {
   navigate: (path: string, options?: NavigateOptions) => void;
   params: RouteParams;
-  searchParams: RouteParams;
+  searchParams: SearchParams;
   location: {
     pathname: string;
     search: string;
     hash: string;
     state: unknown;
   };
-  setSearchParams: (
-    newParams: SearchParamsPatch,
+  setSearchParam: (
+    key: string,
+    value: string,
     options?: NavigateOptions,
   ) => void;
+  appendSearchParam: (
+    key: string,
+    value: string,
+    options?: NavigateOptions,
+  ) => void;
+  deleteSearchParam: (
+    key: string,
+    value?: string,
+    options?: NavigateOptions,
+  ) => void;
+  patchSearchParams: (
+    patch: SearchParamsPatch,
+    options?: NavigateOptions,
+  ) => void;
+  replaceAllSearchParams: (
+    params: SearchParams,
+    options?: NavigateOptions,
+  ) => void;
+  getSearchParam: (key: string) => string | null;
+  getAllSearchParams: (key: string) => string[];
+  hasSearchParam: (key: string) => boolean;
 }
 
 export type ScrollPosition = { x: number; y: number };

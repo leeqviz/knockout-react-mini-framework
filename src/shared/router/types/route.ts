@@ -9,9 +9,13 @@ export interface RouteConfig {
 
 export type RouteParams = Record<string, string>;
 
+export type SearchParamValue = string | string[];
+
+export type SearchParams = Record<string, SearchParamValue>;
+
 export type SearchParamsPatch = Record<
   string,
-  string | number | boolean | null | undefined
+  string | string[] | null | undefined
 >;
 
 export interface ResolvedRouteState {
@@ -19,7 +23,7 @@ export interface ResolvedRouteState {
   search: string;
   component: string;
   params: RouteParams;
-  searchParams: RouteParams;
+  searchParams: SearchParams;
   state: unknown;
   hash: string;
 }

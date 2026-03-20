@@ -23,6 +23,8 @@ export type {
   ScrollBehaviorFn,
   ScrollPosition,
   ScrollTarget,
+  SearchParams,
   SearchParamsPatch,
+  SearchParamValue,
   StateCompareStrategy,
 } from './types';

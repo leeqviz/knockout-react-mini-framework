@@ -13,7 +13,14 @@ export const mockedRouterContextValue: RouterSnapshot = {
     hash: '',
     state: null,
   },
-  setSearchParams: vi.fn(),
+  setSearchParam: vi.fn(),
+  appendSearchParam: vi.fn(),
+  deleteSearchParam: vi.fn(),
+  patchSearchParams: vi.fn(),
+  replaceAllSearchParams: vi.fn(),
+  getSearchParam: vi.fn(),
+  getAllSearchParams: vi.fn(),
+  hasSearchParam: vi.fn(),
 };
 
 export function renderWithRouterContext(
