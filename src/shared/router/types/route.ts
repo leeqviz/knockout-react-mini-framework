@@ -1,12 +1,21 @@
 import { ResolveResultType } from '../route';
 import type { RouteMiddleware } from './middleware';
 
-export interface RouteConfig {
+export interface QueryParamConfig {
+  default?: string;
+  required?: boolean;
+}
+
+export interface RouteConfig<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> {
   pattern: string;
   component: string;
   name?: string; // id
-  meta?: Record<string, unknown>;
-  middlewares?: RouteMiddleware[] | undefined;
+  meta?: TMeta;
+  middlewares?: RouteMiddleware<TMeta>[] | undefined;
+  paramValidators?: Record<string, RegExp | string[]>;
+  queryParams?: Record<string, QueryParamConfig>;
 }
 
 export type RouteParams = Record<string, string>;
@@ -20,7 +29,9 @@ export type SearchParamsPatch = Record<
   string | string[] | null | undefined
 >;
 
-export interface ResolvedRouteState {
+export interface ResolvedRouteState<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> {
   pathname: string;
   search: string;
   component: string;
@@ -29,7 +40,17 @@ export interface ResolvedRouteState {
   state: unknown;
   hash: string;
   name: string | undefined;
-  meta: Record<string, unknown> | undefined;
+  meta: TMeta | undefined;
+}
+
+export interface ResolvedRouteInfo<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> {
+  name: string | undefined;
+  meta: TMeta | undefined;
+  component: string;
+  params: RouteParams;
+  pattern: string;
 }
 
 export type BlockedResult = {
@@ -54,14 +75,18 @@ export type ErrorResult = {
   error: Error;
 };
 
-export type ResolvedResult = {
+export type ResolvedResult<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> = {
   type: typeof ResolveResultType.Resolved;
-  value: ResolvedRouteState;
+  value: ResolvedRouteState<TMeta>;
 };
 
-export type ResolveResult =
+export type ResolveResult<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> =
   | BlockedResult
   | RedirectResult
   | RewriteResult
-  | ResolvedResult
+  | ResolvedResult<TMeta>
   | ErrorResult;

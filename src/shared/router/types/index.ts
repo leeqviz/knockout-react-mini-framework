@@ -6,8 +6,10 @@ export type {
 export type {
   BlockedResult,
   ErrorResult,
+  QueryParamConfig,
   RedirectResult,
   ResolvedResult,
+  ResolvedRouteInfo,
   ResolvedRouteState,
   ResolveResult,
   RewriteResult,
@@ -21,6 +23,7 @@ export type {
   AfterNavigateHook,
   BuildPathSearch,
   InternalHistoryState,
+  NavigateExternalOptions,
   NavigateOptions,
   NavigationBlockedHook,
   NavigationErrorHook,

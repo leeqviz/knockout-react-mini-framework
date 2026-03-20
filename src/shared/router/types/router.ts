@@ -1,5 +1,6 @@
 import type { RouteMiddleware } from './middleware';
 import type {
+  ResolvedRouteInfo,
   ResolvedRouteState,
   RouteConfig,
   RouteParams,
@@ -20,29 +21,38 @@ export interface NavigationLocation {
   state: unknown;
 }
 
-export type AfterNavigateHook = (
-  to: ResolvedRouteState,
-  from: ResolvedRouteState | null,
+export type AfterNavigateHook<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> = (
+  to: ResolvedRouteState<TMeta>,
+  from: ResolvedRouteState<TMeta> | null,
 ) => void;
 
-export type NavigationBlockedHook = (
-  to: NavigationLocation,
-  from: ResolvedRouteState | null,
-) => void;
+export type NavigationBlockedHook<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> = (to: NavigationLocation, from: ResolvedRouteState<TMeta> | null) => void;
 
 export type NavigationErrorHook = (
   error: unknown,
   to: NavigationLocation,
 ) => boolean | void;
 
-export interface RouterOptions {
-  routes?: RouteConfig[] | undefined;
-  middlewares?: RouteMiddleware[] | undefined;
-  scrollBehavior?: ScrollBehaviorFn;
+export interface RouterOptions<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> {
+  routes?: RouteConfig<TMeta>[] | undefined;
+  middlewares?: RouteMiddleware<TMeta>[] | undefined;
+  scrollBehavior?: ScrollBehaviorFn<TMeta>;
   stateCompare?: StateCompareStrategy;
-  afterNavigate?: AfterNavigateHook;
-  onNavigationBlocked?: NavigationBlockedHook;
+  afterNavigate?: AfterNavigateHook<TMeta>;
+  onNavigationBlocked?: NavigationBlockedHook<TMeta>;
   onNavigationError?: NavigationErrorHook;
+  debug?: boolean; // TODO: debug mode
+  confirmLeave?: (
+    to: NavigationLocation,
+    from: ResolvedRouteState<TMeta> | null,
+  ) => boolean;
+  enableBeforeUnload?: boolean;
 }
 
 export interface NavigateOptions {
@@ -52,8 +62,15 @@ export interface NavigateOptions {
   force?: boolean;
 }
 
-export interface RouterSnapshot {
+export interface NavigateExternalOptions {
+  target?: '_blank' | '_self'; // default: '_self'
+}
+
+export interface RouterSnapshot<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> {
   navigate: (path: string, options?: NavigateOptions) => void;
+  navigateExternal: (url: string, options?: NavigateExternalOptions) => void;
   navigateByName: (
     name: string,
     params?: RouteParams,
@@ -71,12 +88,13 @@ export interface RouterSnapshot {
   forward: () => void;
   go: (delta: number) => void;
   hasRoute: (name: string) => boolean;
+  resolveRoute: (path: string) => ResolvedRouteInfo<TMeta> | null;
 
   params: RouteParams;
   searchParams: SearchParams;
   route: {
     name: string | undefined;
-    meta: Record<string, unknown> | undefined;
+    meta: TMeta | undefined;
   };
   location: {
     pathname: string;
@@ -121,9 +139,11 @@ export type ScrollPosition = { x: number; y: number };
 
 export type ScrollTarget = ScrollPosition | 'top' | 'preserve' | null;
 
-export type ScrollBehaviorFn = (
-  to: ResolvedRouteState,
-  from: ResolvedRouteState | null,
+export type ScrollBehaviorFn<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> = (
+  to: ResolvedRouteState<TMeta>,
+  from: ResolvedRouteState<TMeta> | null,
   savedPosition: ScrollPosition | null,
 ) => ScrollTarget;
 

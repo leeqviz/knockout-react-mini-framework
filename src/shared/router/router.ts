@@ -6,12 +6,15 @@ import type {
   BuildPathSearch,
   ErrorResult,
   InternalHistoryState,
+  NavigateExternalOptions,
   NavigateOptions,
   NavigationBlockedHook,
   NavigationErrorHook,
   NavigationLocation,
+  QueryParamConfig,
   RedirectResult,
   ResolvedResult,
+  ResolvedRouteInfo,
   ResolvedRouteState,
   ResolveResult,
   RewriteResult,
@@ -30,17 +33,28 @@ import type {
   StateCompareStrategy,
 } from './types';
 
-export class BaseRouter {
-  protected routes: RouteConfig[];
-  protected middlewares: RouteMiddleware[];
+export class BaseRouter<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> {
+  public readonly routes: RouteConfig<TMeta>[];
+  protected middlewares: RouteMiddleware<TMeta>[];
   protected scrollPositions = new Map<string, ScrollPosition>();
   protected currentHistoryKey: string = '';
-  protected previousRouteState: ResolvedRouteState | null = null;
-  protected readonly scrollBehavior: ScrollBehaviorFn;
+  protected previousRouteState: ResolvedRouteState<TMeta> | null = null;
+  protected readonly scrollBehavior: ScrollBehaviorFn<TMeta>;
   protected readonly stateCompare: (a: unknown, b: unknown) => boolean;
-  protected readonly afterNavigateHook: AfterNavigateHook | undefined;
-  protected readonly onNavigationBlockedHook: NavigationBlockedHook | undefined;
+  protected readonly afterNavigateHook: AfterNavigateHook<TMeta> | undefined;
+  protected readonly onNavigationBlockedHook:
+    | NavigationBlockedHook<TMeta>
+    | undefined;
   protected readonly onNavigationErrorHook: NavigationErrorHook | undefined;
+  protected readonly confirmLeaveHook:
+    | ((
+        to: NavigationLocation,
+        from: ResolvedRouteState<TMeta> | null,
+      ) => boolean)
+    | undefined;
+  protected readonly enableBeforeUnload: boolean;
   protected isStarted: boolean = false;
 
   public currentComponent: KnockoutObservable<string>;
@@ -51,7 +65,7 @@ export class BaseRouter {
   public currentHistoryState: KnockoutObservable<unknown>;
   public currentHash: KnockoutObservable<string>;
   public currentRouteName: KnockoutObservable<string | undefined>;
-  public currentMeta: KnockoutObservable<Record<string, unknown> | undefined>;
+  public currentMeta: KnockoutObservable<TMeta | undefined>;
 
   protected static readonly defaultScrollBehavior: ScrollBehaviorFn = (
     _to,
@@ -125,15 +139,20 @@ export class BaseRouter {
     */
   }
 
-  protected constructor(options?: RouterOptions) {
+  protected constructor(options?: RouterOptions<TMeta>) {
     this.routes = this.rankRoutes(options?.routes ?? []);
     this.middlewares = options?.middlewares || [];
     this.scrollBehavior =
-      options?.scrollBehavior ?? BaseRouter.defaultScrollBehavior;
+      options?.scrollBehavior ??
+      (BaseRouter.defaultScrollBehavior as ScrollBehaviorFn<TMeta>);
     this.stateCompare = BaseRouter.resolveComparator(options?.stateCompare);
     this.afterNavigateHook = options?.afterNavigate;
     this.onNavigationBlockedHook = options?.onNavigationBlocked;
     this.onNavigationErrorHook = options?.onNavigationError;
+    this.confirmLeaveHook = options?.confirmLeave;
+    this.enableBeforeUnload = options?.confirmLeave
+      ? (options?.enableBeforeUnload ?? true)
+      : false;
 
     const initialUrl = new URL(window.location.href);
     const initialMatch = this.routes.find((r) =>
@@ -164,6 +183,9 @@ export class BaseRouter {
 
     window.history.scrollRestoration = 'manual';
     window.addEventListener('popstate', this.handlePopState);
+    if (this.enableBeforeUnload) {
+      window.addEventListener('beforeunload', this.handleBeforeUnload);
+    }
 
     const fullPath = this.getCurrentFullPath();
     const initialHash = window.location.hash;
@@ -226,6 +248,14 @@ export class BaseRouter {
 
     window.history.scrollRestoration = 'auto';
     window.removeEventListener('popstate', this.handlePopState);
+    if (this.enableBeforeUnload) {
+      window.removeEventListener('beforeunload', this.handleBeforeUnload);
+    }
+  };
+
+  protected handleBeforeUnload = (event: BeforeUnloadEvent): void => {
+    event.preventDefault();
+    event.returnValue = '';
   };
 
   public navigate = (
@@ -242,6 +272,7 @@ export class BaseRouter {
 
     const nextFullPath = this.normalizePath(nextUrl.pathname) + nextUrl.search;
     const nextHash = nextUrl.hash;
+
     const currentFullPath = this.getCurrentFullPath();
 
     const { data: currentUserState } = this.readHistoryState(
@@ -258,6 +289,16 @@ export class BaseRouter {
     const sameHash = this.currentHash() === nextHash;
 
     if (!options?.force && samePath && sameState && sameHash) return;
+
+    if (this.confirmLeaveHook && !samePath) {
+      const to: NavigationLocation = {
+        pathname: this.normalizePath(nextUrl.pathname),
+        search: nextUrl.search,
+        hash: nextHash,
+        state: options?.state ?? null,
+      };
+      if (!this.confirmLeaveHook(to, this.captureCurrentRouteState())) return;
+    }
 
     if (samePath && sameState && !sameHash) {
       const fullUrlWithHash = currentFullPath + nextHash;
@@ -353,9 +394,10 @@ export class BaseRouter {
     return this.normalizePath(url.pathname) + url.search;
   };
 
-  public getSnapshot = (): RouterSnapshot => {
+  public getSnapshot = (): RouterSnapshot<TMeta> => {
     return {
       navigate: this.navigate,
+      navigateExternal: this.navigateExternal,
       navigateByName: this.navigateByName,
       buildPath: this.buildPath,
 
@@ -363,6 +405,7 @@ export class BaseRouter {
       forward: this.forward,
       go: this.go,
       hasRoute: this.hasRoute,
+      resolveRoute: this.resolveRoute,
 
       params: this.currentParams(),
       searchParams: this.currentSearchParams(),
@@ -410,6 +453,28 @@ export class BaseRouter {
     this.currentHistoryKey = nextKey;
 
     const samePath = previousFullPath === nextFullPath;
+
+    if (this.confirmLeaveHook && !samePath) {
+      const parsedNext = this.parseUrl(
+        new URL(nextFullPath + nextHash, window.location.origin),
+      );
+      const to: NavigationLocation = {
+        pathname: parsedNext.pathname,
+        search: parsedNext.search,
+        hash: parsedNext.hash,
+        state: nextUserState,
+      };
+      if (!this.confirmLeaveHook(to, this.captureCurrentRouteState())) {
+        this.currentHistoryKey = previousHistoryKey;
+        window.history.replaceState(
+          this.wrapState(previousState, previousHistoryKey),
+          '',
+          previousFullPath + previousHash,
+        );
+        this.notifyNavigationBlocked(to);
+        return;
+      }
+    }
 
     if (samePath) {
       this.currentHash(nextHash);
@@ -545,7 +610,10 @@ export class BaseRouter {
     });
   };
 
-  protected resolvePath = (fullPath: string, state: unknown): ResolveResult => {
+  protected resolvePath = (
+    fullPath: string,
+    state: unknown,
+  ): ResolveResult<TMeta> => {
     const url = new URL(fullPath, window.location.origin);
     const { pathname, search, searchParams, hash } = this.parseUrl(url);
 
@@ -561,6 +629,20 @@ export class BaseRouter {
       const match = this.matchRoute(route.pattern, pathname);
 
       if (!match) continue;
+
+      if (
+        route.paramValidators &&
+        !this.validateParams(match, route.paramValidators)
+      )
+        continue;
+
+      const queryResult = this.applyQueryParamConfig(
+        searchParams,
+        route.queryParams,
+      );
+      if (!queryResult.valid) {
+        return { type: ResolveResultType.Blocked };
+      }
 
       const middlewareResult = this.runMiddlewares(route.middlewares ?? [], {
         pathname,
@@ -579,7 +661,7 @@ export class BaseRouter {
           hash,
           component: route.component,
           params: match,
-          searchParams,
+          searchParams: queryResult.searchParams,
           state,
           name: route.name,
           meta: route.meta,
@@ -668,7 +750,7 @@ export class BaseRouter {
     return path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path;
   };
 
-  protected applyState = (nextState: ResolvedRouteState): void => {
+  protected applyState = (nextState: ResolvedRouteState<TMeta>): void => {
     this.previousRouteState = this.captureCurrentRouteState();
     this.currentPathname(nextState.pathname);
     this.currentSearch(nextState.search);
@@ -703,9 +785,9 @@ export class BaseRouter {
   };
 
   protected runMiddlewares = (
-    middlewares: RouteMiddleware[],
-    context: RouteMiddlewareContext,
-  ): RouteMiddlewareResult => {
+    middlewares: RouteMiddleware<TMeta>[],
+    context: RouteMiddlewareContext<TMeta>,
+  ): RouteMiddlewareResult<TMeta> => {
     for (const middleware of middlewares) {
       const result = middleware(context);
       if (result) return result;
@@ -713,13 +795,13 @@ export class BaseRouter {
   };
 
   protected handleResolveResult = (
-    result: ResolveResult,
+    result: ResolveResult<TMeta>,
     options: {
       onBlocked: (result: BlockedResult) => void;
       onError: (result: ErrorResult) => void;
       onRedirect: (result: RedirectResult) => void;
       onRewrite: (result: RewriteResult) => void;
-      onResolved: (result: ResolvedResult) => void;
+      onResolved: (result: ResolvedResult<TMeta>) => void;
     },
   ): void => {
     switch (result.type) {
@@ -755,7 +837,9 @@ export class BaseRouter {
     );
   };
 
-  protected rankRoutes = (routes: RouteConfig[]): RouteConfig[] => {
+  protected rankRoutes = (
+    routes: RouteConfig<TMeta>[],
+  ): RouteConfig<TMeta>[] => {
     const names = routes.map((r) => r.name).filter(Boolean);
     const duplicates = names.filter((n, i) => names.indexOf(n) !== i);
     if (duplicates.length > 0) {
@@ -939,7 +1023,7 @@ export class BaseRouter {
     }
   };
 
-  protected captureCurrentRouteState = (): ResolvedRouteState => ({
+  protected captureCurrentRouteState = (): ResolvedRouteState<TMeta> => ({
     pathname: this.currentPathname(),
     search: this.currentSearch(),
     hash: this.currentHash(),
@@ -964,7 +1048,7 @@ export class BaseRouter {
   };
 
   protected handleScroll = (
-    to: ResolvedRouteState,
+    to: ResolvedRouteState<TMeta>,
     savedPosition: ScrollPosition | null,
   ): void => {
     if (to.hash) {
@@ -1175,7 +1259,7 @@ export class BaseRouter {
     this.navigate(path, options);
   };
 
-  protected notifyAfterNavigate = (to: ResolvedRouteState): void => {
+  protected notifyAfterNavigate = (to: ResolvedRouteState<TMeta>): void => {
     this.afterNavigateHook?.(to, this.previousRouteState);
   };
 
@@ -1225,5 +1309,99 @@ export class BaseRouter {
 
   public hasRoute = (name: string): boolean => {
     return this.routes.some((r) => r.name === name);
+  };
+
+  protected validateParams = (
+    params: RouteParams,
+    validators: Record<string, RegExp | string[]>,
+  ): boolean => {
+    return Object.entries(validators).every(([key, validator]) => {
+      const value = params[key];
+      if (value === undefined) return true;
+      if (Array.isArray(validator)) return validator.includes(value);
+      return validator.test(value);
+    });
+  };
+
+  protected applyQueryParamConfig = (
+    searchParams: SearchParams,
+    config?: Record<string, QueryParamConfig>,
+  ): { valid: boolean; searchParams: SearchParams } => {
+    if (!config) return { valid: true, searchParams };
+
+    const result: SearchParams = { ...searchParams };
+
+    for (const [key, paramConfig] of Object.entries(config)) {
+      if (result[key] === undefined) {
+        if (paramConfig.required && paramConfig.default === undefined) {
+          return { valid: false, searchParams: result };
+        }
+        if (paramConfig.default !== undefined) {
+          result[key] = paramConfig.default;
+        }
+      }
+    }
+
+    return { valid: true, searchParams: result };
+  };
+
+  public resolveRoute = (path: string): ResolvedRouteInfo<TMeta> | null => {
+    let url: URL;
+    try {
+      url = this.resolveTo(path);
+    } catch {
+      return null;
+    }
+
+    const { pathname } = this.parseUrl(url);
+
+    for (const route of this.routes) {
+      const match = this.matchRoute(route.pattern, pathname);
+      if (!match) continue;
+      if (
+        route.paramValidators &&
+        !this.validateParams(match, route.paramValidators)
+      )
+        continue;
+
+      return {
+        name: route.name,
+        meta: route.meta as TMeta | undefined,
+        component: route.component,
+        params: match,
+        pattern: route.pattern,
+      };
+    }
+
+    return null;
+  };
+
+  public navigateExternal = (
+    url: string,
+    options?: NavigateExternalOptions,
+  ): void => {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new Error(`BaseRouter.navigateExternal: invalid URL "${url}"`);
+    }
+
+    if (!['http:', 'https:', 'mailto:', 'tel:'].includes(parsed.protocol)) {
+      throw new Error(
+        `BaseRouter.navigateExternal: unsafe protocol "${parsed.protocol}"`,
+      );
+    }
+
+    if (parsed.origin === window.location.origin) {
+      this.navigate(parsed.pathname + parsed.search + parsed.hash);
+      return;
+    }
+
+    if (options?.target === '_blank') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      window.location.href = url;
+    }
   };
 }
