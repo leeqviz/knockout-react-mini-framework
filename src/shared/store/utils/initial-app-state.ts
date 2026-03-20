@@ -1,5 +1,5 @@
 import { getCurrentISODate } from '@/shared/utils/mappers';
-import type { AppStateData } from './types';
+import type { AppStateData } from '../types';
 
 export const initialAppStateData: AppStateData = {
   isAuth: false,

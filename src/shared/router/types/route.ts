@@ -1,4 +1,4 @@
-import { ResolveResultType } from '../route';
+import { ResolveResultType } from '../utils';
 import type { RouteMiddleware } from './middleware';
 
 export interface QueryParamConfig {

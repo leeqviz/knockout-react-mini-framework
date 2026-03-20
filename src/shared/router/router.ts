@@ -1,17 +1,14 @@
 import { ko } from '@/shared/lib/ko';
-import { ResolveResultType } from './route';
 import type {
   AfterNavigateHook,
   BlockedResult,
   BuildPathSearch,
   ErrorResult,
-  InternalHistoryState,
   NavigateExternalOptions,
   NavigateOptions,
   NavigationBlockedHook,
   NavigationErrorHook,
   NavigationLocation,
-  QueryParamConfig,
   RedirectResult,
   ResolvedResult,
   ResolvedRouteInfo,
@@ -27,11 +24,32 @@ import type {
   RouterSnapshot,
   ScrollBehaviorFn,
   ScrollPosition,
-  ScrollTarget,
   SearchParams,
   SearchParamsPatch,
-  StateCompareStrategy,
 } from './types';
+import {
+  addBase,
+  applyQueryParamConfig,
+  applyScrollTarget,
+  defaultScrollBehavior,
+  generateHistoryKey,
+  getCurrentFullPath,
+  getWildcardParamName,
+  isWildcardSegment,
+  matchRoute,
+  normalizeBase,
+  normalizeFullPath,
+  normalizePath,
+  parseUrl,
+  rankRoutes,
+  readHistoryState,
+  resolveComparator,
+  ResolveResultType,
+  scheduleScrollToFragment,
+  stripBase,
+  validateParams,
+  wrapState,
+} from './utils';
 
 export class BaseRouter<
   TMeta extends Record<string, unknown> = Record<string, unknown>,
@@ -39,10 +57,7 @@ export class BaseRouter<
   public readonly routes: RouteConfig<TMeta>[];
   protected readonly base: string;
   protected readonly caseSensitive: boolean;
-  protected middlewares: RouteMiddleware<TMeta>[];
-  protected scrollPositions = new Map<string, ScrollPosition>();
-  protected currentHistoryKey: string = '';
-  protected previousRouteState: ResolvedRouteState<TMeta> | null = null;
+  protected readonly middlewares: RouteMiddleware<TMeta>[];
   protected readonly scrollBehavior: ScrollBehaviorFn<TMeta>;
   protected readonly stateCompare: (a: unknown, b: unknown) => boolean;
   protected readonly afterNavigateHook: AfterNavigateHook<TMeta> | undefined;
@@ -57,6 +72,9 @@ export class BaseRouter<
       ) => boolean)
     | undefined;
   protected readonly enableBeforeUnload: boolean;
+  protected scrollPositions = new Map<string, ScrollPosition>();
+  protected currentHistoryKey: string = '';
+  protected previousRouteState: ResolvedRouteState<TMeta> | null = null;
   protected isStarted: boolean = false;
 
   public currentComponent: KnockoutObservable<string>;
@@ -70,87 +88,13 @@ export class BaseRouter<
   public currentMeta: KnockoutObservable<TMeta | undefined>;
   public currentPattern: KnockoutObservable<string | undefined>;
 
-  protected static readonly defaultScrollBehavior: ScrollBehaviorFn = (
-    _to,
-    _from,
-    savedPosition,
-  ) => {
-    if (savedPosition) return savedPosition;
-    return 'top';
-    /* Custom 
-      if (savedPosition) return savedPosition;           
-      if (to.hash) return null;                          
-      if (to.meta?.scrollMode === 'preserve') return 'preserve'; 
-      return 'top';
-    */
-  };
-
-  protected static readonly stateComparators = {
-    reference: (a: unknown, b: unknown): boolean => a === b,
-
-    shallow: (a: unknown, b: unknown): boolean => {
-      if (a === b) return true;
-      if (a === null || b === null) return false;
-      if (typeof a !== 'object' || typeof b !== 'object') return false;
-
-      const keysA = Object.keys(a as object);
-      const keysB = Object.keys(b as object);
-
-      if (keysA.length !== keysB.length) return false;
-
-      return keysA.every(
-        (key) =>
-          (b as Record<string, unknown>)[key] ===
-          (a as Record<string, unknown>)[key],
-      );
-    },
-
-    deep: (a: unknown, b: unknown): boolean => {
-      if (a === b) return true;
-      if (a === null || b === null) return a === b;
-      if (typeof a !== typeof b) return false;
-      if (typeof a !== 'object') return a === b;
-
-      if (Array.isArray(a) !== Array.isArray(b)) return false;
-
-      const keysA = Object.keys(a as object);
-      const keysB = Object.keys(b as object);
-
-      if (keysA.length !== keysB.length) return false;
-
-      return keysA.every((key) =>
-        BaseRouter.stateComparators.deep(
-          (a as Record<string, unknown>)[key],
-          (b as Record<string, unknown>)[key],
-        ),
-      );
-    },
-  } as const;
-
-  protected static resolveComparator(
-    strategy: StateCompareStrategy | undefined,
-  ): (a: unknown, b: unknown) => boolean {
-    if (!strategy || strategy === 'reference') {
-      return BaseRouter.stateComparators.reference;
-    }
-    if (strategy === 'shallow') return BaseRouter.stateComparators.shallow;
-    if (strategy === 'deep') return BaseRouter.stateComparators.deep;
-    return strategy;
-    /* custom
-      if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return a === b;
-      return (a as { id?: unknown }).id === (b as { id?: unknown }).id;
-    */
-  }
-
   protected constructor(options?: RouterOptions<TMeta>) {
-    this.routes = this.rankRoutes(options?.routes ?? []);
-    this.base = this.normalizeBase(options?.base ?? '');
+    this.routes = rankRoutes(options?.routes ?? []);
+    this.base = normalizeBase(options?.base ?? '');
     this.caseSensitive = options?.caseSensitive ?? false;
     this.middlewares = options?.middlewares || [];
-    this.scrollBehavior =
-      options?.scrollBehavior ??
-      (BaseRouter.defaultScrollBehavior as ScrollBehaviorFn<TMeta>);
-    this.stateCompare = BaseRouter.resolveComparator(options?.stateCompare);
+    this.scrollBehavior = options?.scrollBehavior ?? defaultScrollBehavior;
+    this.stateCompare = resolveComparator(options?.stateCompare);
     this.afterNavigateHook = options?.afterNavigate;
     this.onNavigationBlockedHook = options?.onNavigationBlocked;
     this.onNavigationErrorHook = options?.onNavigationError;
@@ -160,11 +104,11 @@ export class BaseRouter<
       : false;
 
     const initialUrl = new URL(window.location.href);
-    const strippedPathname = this.normalizePath(
-      this.stripBase(initialUrl.pathname),
+    const strippedPathname = normalizePath(
+      stripBase(initialUrl.pathname, this.base),
     );
     const initialMatch = this.routes.find((r) =>
-      this.matchRoute(r.pattern, strippedPathname),
+      matchRoute(r.pattern, strippedPathname, this.caseSensitive),
     );
 
     this.currentComponent = ko.observable(initialMatch?.component ?? '');
@@ -174,13 +118,10 @@ export class BaseRouter<
     this.currentPattern = ko.observable(initialMatch?.pattern);
     this.currentPathname = ko.observable(strippedPathname);
     this.currentSearch = ko.observable(initialUrl.search);
-    this.currentSearchParams = ko.observable(
-      this.parseUrl(initialUrl).searchParams,
+    this.currentSearchParams = ko.observable(parseUrl(initialUrl).searchParams);
+    this.currentHistoryState = ko.observable(
+      readHistoryState(window.history.state).data,
     );
-    const { data: initialUserState } = this.readHistoryState(
-      window.history.state,
-    );
-    this.currentHistoryState = ko.observable(initialUserState);
     this.currentHash = ko.observable(initialUrl.hash);
   }
 
@@ -190,25 +131,24 @@ export class BaseRouter<
 
     window.history.scrollRestoration = 'manual';
     window.addEventListener('popstate', this.handlePopState);
-    if (this.enableBeforeUnload) {
+    if (this.enableBeforeUnload)
       window.addEventListener('beforeunload', this.handleBeforeUnload);
-    }
 
-    const fullPath = this.getCurrentFullPath();
+    const fullPath = getCurrentFullPath();
     const initialHash = window.location.hash;
     const rawState = window.history.state;
-    const { key, data: userState } = this.readHistoryState(rawState);
+    const { key, data: userState } = readHistoryState(rawState);
     this.currentHistoryKey = key;
 
     if (!rawState || !('__routerKey' in Object(rawState))) {
       window.history.replaceState(
-        this.wrapState(userState, key),
+        wrapState(userState, key),
         '',
-        this.addBase(fullPath) + initialHash,
+        addBase(fullPath, this.base) + initialHash,
       );
     }
 
-    const originalUrl = this.parseUrl(
+    const originalUrl = parseUrl(
       new URL(fullPath + initialHash, window.location.origin),
     );
     const result = this.resolvePath(fullPath, userState);
@@ -255,9 +195,8 @@ export class BaseRouter<
 
     window.history.scrollRestoration = 'auto';
     window.removeEventListener('popstate', this.handlePopState);
-    if (this.enableBeforeUnload) {
+    if (this.enableBeforeUnload)
       window.removeEventListener('beforeunload', this.handleBeforeUnload);
-    }
   };
 
   protected handleBeforeUnload = (event: BeforeUnloadEvent): void => {
@@ -271,24 +210,21 @@ export class BaseRouter<
   ): void => {
     const nextUrl = this.resolveTo(path);
 
-    if (nextUrl.origin !== window.location.origin) {
+    if (nextUrl.origin !== window.location.origin)
       throw new Error(
         `BaseRouter.navigate: cross-origin path "${path}" is not allowed`,
       );
-    }
 
-    const nextFullPath = this.normalizePath(nextUrl.pathname) + nextUrl.search;
+    const nextFullPath = normalizePath(nextUrl.pathname) + nextUrl.search;
     const nextHash = nextUrl.hash;
 
-    const currentFullPath = this.getCurrentFullPath();
+    const currentFullPath = getCurrentFullPath();
 
-    const { data: currentUserState } = this.readHistoryState(
-      window.history.state,
-    );
+    const { data: currentUserState } = readHistoryState(window.history.state);
     const nextState = options?.state ?? null;
 
     const comparator = options?.stateCompare
-      ? BaseRouter.resolveComparator(options.stateCompare)
+      ? resolveComparator(options.stateCompare)
       : this.stateCompare;
 
     const samePath = currentFullPath === nextFullPath;
@@ -299,7 +235,7 @@ export class BaseRouter<
 
     if (this.confirmLeaveHook && !samePath) {
       const to: NavigationLocation = {
-        pathname: this.normalizePath(nextUrl.pathname),
+        pathname: normalizePath(nextUrl.pathname),
         search: nextUrl.search,
         hash: nextHash,
         state: options?.state ?? null,
@@ -308,20 +244,20 @@ export class BaseRouter<
     }
 
     if (samePath && sameState && !sameHash) {
-      const fullUrlWithHash = this.addBase(currentFullPath) + nextHash;
+      const fullUrlWithHash = addBase(currentFullPath, this.base) + nextHash;
 
       if (options?.replace) {
         window.history.replaceState(
-          this.wrapState(nextState, this.currentHistoryKey),
+          wrapState(nextState, this.currentHistoryKey),
           '',
           fullUrlWithHash,
         );
       } else {
         this.saveCurrentScrollPosition();
-        const newKey = this.generateHistoryKey();
+        const newKey = generateHistoryKey();
         this.currentHistoryKey = newKey;
         window.history.pushState(
-          this.wrapState(nextState, newKey),
+          wrapState(nextState, newKey),
           '',
           fullUrlWithHash,
         );
@@ -330,12 +266,12 @@ export class BaseRouter<
       this.currentHash(nextHash);
       this.currentHistoryState(nextState);
       this.notifyAfterNavigate(this.captureCurrentRouteState());
-      this.scheduleScrollToFragment(nextHash);
+      scheduleScrollToFragment(nextHash);
       return;
     }
 
     const result = this.resolvePath(nextFullPath, nextState);
-    const originalUrl = this.parseUrl(
+    const originalUrl = parseUrl(
       new URL(nextFullPath + nextHash, window.location.origin),
     );
 
@@ -349,7 +285,7 @@ export class BaseRouter<
         });
       },
       onRedirect: (res) => {
-        if (this.normalizeFullPath(res.to) === nextFullPath) return;
+        if (normalizeFullPath(res.to) === nextFullPath) return;
 
         this.navigate(res.to, {
           replace: res.replace ?? false,
@@ -370,20 +306,20 @@ export class BaseRouter<
       },
       onResolved: (res) => {
         const normalizedPath =
-          this.addBase(res.value.pathname + res.value.search) + nextHash;
+          addBase(res.value.pathname + res.value.search, this.base) + nextHash;
 
         if (options?.replace) {
           window.history.replaceState(
-            this.wrapState(nextState, this.currentHistoryKey),
+            wrapState(nextState, this.currentHistoryKey),
             '',
             normalizedPath,
           );
         } else {
           this.saveCurrentScrollPosition();
-          const newKey = this.generateHistoryKey();
+          const newKey = generateHistoryKey();
           this.currentHistoryKey = newKey;
           window.history.pushState(
-            this.wrapState(nextState, newKey),
+            wrapState(nextState, newKey),
             '',
             normalizedPath,
           );
@@ -395,11 +331,6 @@ export class BaseRouter<
         this.handleScroll(nextRouteState, null);
       },
     });
-  };
-
-  protected normalizeFullPath = (fullPath: string): string => {
-    const url = new URL(fullPath, window.location.origin);
-    return this.normalizePath(this.stripBase(url.pathname)) + url.search;
   };
 
   public getSnapshot = (): RouterSnapshot<TMeta> => {
@@ -452,9 +383,9 @@ export class BaseRouter<
     const previousState = this.currentHistoryState();
     const previousHistoryKey = this.currentHistoryKey;
 
-    const nextFullPath = this.getCurrentFullPath();
+    const nextFullPath = getCurrentFullPath();
     const nextHash = window.location.hash;
-    const { key: nextKey, data: nextUserState } = this.readHistoryState(
+    const { key: nextKey, data: nextUserState } = readHistoryState(
       window.history.state,
     );
 
@@ -464,7 +395,7 @@ export class BaseRouter<
     const samePath = previousFullPath === nextFullPath;
 
     if (this.confirmLeaveHook && !samePath) {
-      const parsedNext = this.parseUrl(
+      const parsedNext = parseUrl(
         new URL(nextFullPath + nextHash, window.location.origin),
       );
       const to: NavigationLocation = {
@@ -476,9 +407,9 @@ export class BaseRouter<
       if (!this.confirmLeaveHook(to, this.captureCurrentRouteState())) {
         this.currentHistoryKey = previousHistoryKey;
         window.history.replaceState(
-          this.wrapState(previousState, previousHistoryKey),
+          wrapState(previousState, previousHistoryKey),
           '',
-          this.addBase(previousFullPath) + previousHash,
+          addBase(previousFullPath, this.base) + previousHash,
         );
         this.notifyNavigationBlocked(to);
         return;
@@ -489,11 +420,11 @@ export class BaseRouter<
       this.currentHash(nextHash);
       this.currentHistoryState(nextUserState);
       this.notifyAfterNavigate(this.captureCurrentRouteState());
-      this.scheduleScrollToFragment(nextHash);
+      scheduleScrollToFragment(nextHash);
       return;
     }
 
-    const originalUrl = this.parseUrl(
+    const originalUrl = parseUrl(
       new URL(nextFullPath + nextHash, window.location.origin),
     );
     const result = this.resolvePath(nextFullPath, nextUserState);
@@ -502,9 +433,9 @@ export class BaseRouter<
       onBlocked: () => {
         this.currentHistoryKey = previousHistoryKey;
         window.history.replaceState(
-          this.wrapState(previousState, previousHistoryKey),
+          wrapState(previousState, previousHistoryKey),
           '',
-          this.addBase(previousFullPath) + previousHash,
+          addBase(previousFullPath, this.base) + previousHash,
         );
         this.notifyNavigationBlocked({
           pathname: originalUrl.pathname,
@@ -514,12 +445,12 @@ export class BaseRouter<
         });
       },
       onRedirect: (res) => {
-        if (this.normalizeFullPath(res.to) === nextFullPath) {
+        if (normalizeFullPath(res.to) === nextFullPath) {
           this.currentHistoryKey = previousHistoryKey;
           window.history.replaceState(
-            this.wrapState(previousState, previousHistoryKey),
+            wrapState(previousState, previousHistoryKey),
             '',
-            this.addBase(previousFullPath) + previousHash,
+            addBase(previousFullPath, this.base) + previousHash,
           );
           return;
         }
@@ -562,11 +493,10 @@ export class BaseRouter<
     savedPosition: ScrollPosition | null = null,
     depth: number = 0,
   ): void => {
-    if (depth > 10) {
+    if (depth > 10)
       throw new Error(
         `BaseRouter: maximum rewrite depth exceeded at "${rewriteTo}"`,
       );
-    }
 
     const result = this.resolvePath(rewriteTo, state);
 
@@ -625,7 +555,7 @@ export class BaseRouter<
     state: unknown,
   ): ResolveResult<TMeta> => {
     const url = new URL(fullPath, window.location.origin);
-    const { pathname, search, searchParams, hash } = this.parseUrl(url);
+    const { pathname, search, searchParams, hash } = parseUrl(url);
 
     const globalMiddlewareResult = this.runMiddlewares(this.middlewares, {
       pathname,
@@ -636,23 +566,21 @@ export class BaseRouter<
     if (globalMiddlewareResult) return globalMiddlewareResult;
 
     for (const route of this.routes) {
-      const match = this.matchRoute(route.pattern, pathname);
+      const match = matchRoute(route.pattern, pathname, this.caseSensitive);
 
       if (!match) continue;
 
       if (
         route.paramValidators &&
-        !this.validateParams(match, route.paramValidators)
+        !validateParams(match, route.paramValidators)
       )
         continue;
 
-      const queryResult = this.applyQueryParamConfig(
+      const queryResult = applyQueryParamConfig(
         searchParams,
         route.queryParams,
       );
-      if (!queryResult.valid) {
-        continue;
-      }
+      if (!queryResult.valid) continue;
 
       const middlewareResult = this.runMiddlewares(route.middlewares ?? [], {
         pathname,
@@ -698,68 +626,25 @@ export class BaseRouter<
   };
 
   protected resolveTo = (path: string): URL => {
-    if (!path) {
-      throw new Error('BaseRouter.navigate: empty path');
-    }
+    if (!path) throw new Error('BaseRouter.navigate: empty path');
 
     const origin = window.location.origin;
     const currentPathname = this.currentPathname();
     const currentSearch = this.currentSearch();
 
-    if (path.startsWith('/')) {
-      return new URL(path, origin);
-    }
+    if (path.startsWith('/')) return new URL(path, origin);
 
-    if (path.startsWith('?')) {
+    if (path.startsWith('?'))
       return new URL(`${currentPathname}${path}`, origin);
-    }
 
-    if (path.startsWith('#')) {
+    if (path.startsWith('#'))
       return new URL(`${currentPathname}${currentSearch}${path}`, origin);
-    }
 
     const basePath = currentPathname.endsWith('/')
       ? currentPathname
       : `${currentPathname}/`;
 
     return new URL(path, `${origin}${basePath}`);
-  };
-
-  protected parseUrl = (
-    url: URL,
-  ): {
-    pathname: string;
-    search: string;
-    searchParams: SearchParams;
-    hash: string;
-  } => {
-    const searchParams: SearchParams = {};
-
-    url.searchParams.forEach((value, key) => {
-      const existing = searchParams[key];
-      if (existing === undefined) {
-        searchParams[key] = value;
-      } else if (Array.isArray(existing)) {
-        existing.push(value);
-      } else {
-        searchParams[key] = [existing, value];
-      }
-    });
-
-    return {
-      pathname: this.normalizePath(url.pathname),
-      search: url.search,
-      searchParams,
-      hash: url.hash,
-    };
-  };
-
-  protected normalizePath = (path: string): string => {
-    if (!path || path === '/') {
-      return '/';
-    }
-
-    return path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path;
   };
 
   protected applyState = (nextState: ResolvedRouteState<TMeta>): void => {
@@ -774,27 +659,6 @@ export class BaseRouter<
     this.currentRouteName(nextState.name);
     this.currentMeta(nextState.meta);
     this.currentPattern(nextState.pattern);
-  };
-
-  protected scheduleScrollToFragment = (hash: string): void => {
-    if (!hash) return;
-    requestAnimationFrame(() => this.scrollToFragment(hash));
-  };
-
-  protected scrollToFragment = (hash: string): void => {
-    const id = hash.startsWith('#') ? hash.slice(1) : hash;
-    if (!id) return;
-
-    if (id === 'top') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    const el =
-      document.getElementById(id) ??
-      document.querySelector<HTMLElement>(`[name="${id}"]`);
-
-    el?.scrollIntoView({ behavior: 'smooth' });
   };
 
   protected runMiddlewares = (
@@ -844,190 +708,6 @@ export class BaseRouter<
     }
   };
 
-  protected getCurrentFullPath = (): string => {
-    return (
-      this.normalizePath(this.stripBase(window.location.pathname)) +
-      window.location.search
-    );
-  };
-
-  protected rankRoutes = (
-    routes: RouteConfig<TMeta>[],
-  ): RouteConfig<TMeta>[] => {
-    const names = routes.map((r) => r.name).filter(Boolean);
-    const duplicates = names.filter((n, i) => names.indexOf(n) !== i);
-    if (duplicates.length > 0) {
-      throw new Error(
-        `BaseRouter: duplicate route names found: ${[...new Set(duplicates)].join(', ')}`,
-      );
-    }
-
-    return routes
-      .map((route, index) => ({
-        route,
-        index,
-        score: this.getRouteScore(route.pattern),
-      }))
-      .sort((left, right) => {
-        return right.score - left.score || left.index - right.index;
-      })
-      .map((item) => item.route);
-  };
-
-  protected getRouteScore = (pattern: string): number => {
-    const segments = this.normalizePath(pattern).split('/').filter(Boolean);
-
-    if (segments.length === 0) {
-      return 10_000;
-    }
-
-    return (
-      segments.reduce((score, segment) => {
-        if (this.isWildcardSegment(segment)) {
-          return score + 1;
-        }
-
-        if (segment.startsWith(':')) {
-          return score + (segment.endsWith('?') ? 200 : 300);
-        }
-
-        return score + 400;
-      }, 0) + segments.length
-    );
-  };
-
-  protected isWildcardSegment = (segment: string): boolean => {
-    return segment === '*' || segment.startsWith('*');
-  };
-
-  protected getWildcardParamName = (segment: string): string => {
-    return segment.length > 1 ? segment.slice(1) : 'wildcard';
-  };
-
-  protected matchRoute = (
-    pattern: string,
-    pathname: string,
-  ): RouteParams | null => {
-    const normalizedPattern = this.normalizePath(pattern);
-    const patternSegments = normalizedPattern.split('/').filter(Boolean);
-    const pathSegments = pathname.split('/').filter(Boolean);
-
-    return this.matchSegments(patternSegments, pathSegments, 0, 0, {});
-  };
-
-  protected matchSegments = (
-    patternSegments: string[],
-    pathSegments: string[],
-    patternIndex: number,
-    pathIndex: number,
-    params: RouteParams,
-  ): RouteParams | null => {
-    if (patternIndex === patternSegments.length) {
-      return pathIndex === pathSegments.length ? params : null;
-    }
-
-    const patternSegment = patternSegments[patternIndex];
-
-    if (!patternSegment) {
-      return null;
-    }
-
-    if (this.isWildcardSegment(patternSegment)) {
-      if (patternIndex !== patternSegments.length - 1) {
-        return null;
-      }
-
-      return {
-        ...params,
-        [this.getWildcardParamName(patternSegment)]: pathSegments
-          .slice(pathIndex)
-          .join('/'),
-      };
-    }
-
-    const pathSegment = pathSegments[pathIndex];
-
-    if (patternSegment.startsWith(':')) {
-      const isOptional = patternSegment.endsWith('?');
-      const paramName = patternSegment.slice(1, isOptional ? -1 : undefined);
-
-      if (!paramName) {
-        return null;
-      }
-
-      if (isOptional) {
-        const skipped = this.matchSegments(
-          patternSegments,
-          pathSegments,
-          patternIndex + 1,
-          pathIndex,
-          params,
-        );
-
-        if (skipped) {
-          return skipped;
-        }
-      }
-
-      if (pathSegment === undefined) {
-        return null;
-      }
-
-      return this.matchSegments(
-        patternSegments,
-        pathSegments,
-        patternIndex + 1,
-        pathIndex + 1,
-        {
-          ...params,
-          [paramName]: pathSegment,
-        },
-      );
-    }
-
-    const segmentsMatch = this.caseSensitive
-      ? patternSegment === pathSegment
-      : patternSegment.toLowerCase() === pathSegment?.toLowerCase();
-
-    if (pathSegment === undefined || !segmentsMatch) {
-      return null;
-    }
-
-    return this.matchSegments(
-      patternSegments,
-      pathSegments,
-      patternIndex + 1,
-      pathIndex + 1,
-      params,
-    );
-  };
-
-  protected generateHistoryKey = (): string => {
-    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-  };
-
-  protected wrapState = (
-    userState: unknown,
-    key?: string,
-  ): InternalHistoryState => ({
-    __routerKey: key ?? this.generateHistoryKey(),
-    data: userState,
-  });
-
-  protected readHistoryState = (
-    raw: unknown,
-  ): { key: string; data: unknown } => {
-    if (
-      raw !== null &&
-      typeof raw === 'object' &&
-      '__routerKey' in (raw as object)
-    ) {
-      const entry = raw as InternalHistoryState;
-      return { key: entry.__routerKey, data: entry.data };
-    }
-    return { key: this.generateHistoryKey(), data: raw };
-  };
-
   protected saveCurrentScrollPosition = (): void => {
     if (!this.currentHistoryKey) return;
     this.scrollPositions.set(this.currentHistoryKey, {
@@ -1054,24 +734,12 @@ export class BaseRouter<
     pattern: this.currentPattern(),
   });
 
-  protected applyScrollTarget = (target: ScrollTarget): void => {
-    if (!target || target === 'preserve') return;
-
-    requestAnimationFrame(() => {
-      if (target === 'top') {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-        return;
-      }
-      window.scrollTo({ top: target.y, left: target.x, behavior: 'instant' });
-    });
-  };
-
   protected handleScroll = (
     to: ResolvedRouteState<TMeta>,
     savedPosition: ScrollPosition | null,
   ): void => {
     if (to.hash) {
-      this.scheduleScrollToFragment(to.hash);
+      scheduleScrollToFragment(to.hash);
       return;
     }
 
@@ -1080,7 +748,7 @@ export class BaseRouter<
       this.previousRouteState,
       savedPosition,
     );
-    this.applyScrollTarget(target);
+    applyScrollTarget(target);
   };
 
   protected getCurrentSearchInstance = (): URLSearchParams => {
@@ -1143,9 +811,7 @@ export class BaseRouter<
       const remaining = search.getAll(key).filter((v) => v !== value);
       search.delete(key);
       remaining.forEach((v) => search.append(key, v));
-    } else {
-      search.delete(key);
-    }
+    } else search.delete(key);
 
     this.navigate(this.buildUrlWithSearch(search), {
       replace: options?.replace ?? true,
@@ -1183,11 +849,8 @@ export class BaseRouter<
     const search = new URLSearchParams();
 
     Object.entries(params).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        value.forEach((v) => search.append(key, v));
-      } else {
-        search.set(key, value);
-      }
+      if (Array.isArray(value)) value.forEach((v) => search.append(key, v));
+      else search.set(key, value);
     });
 
     this.navigate(this.buildUrlWithSearch(search), {
@@ -1204,22 +867,18 @@ export class BaseRouter<
   ): string => {
     const route = this.routes.find((r) => r.name === name);
 
-    if (!route) {
+    if (!route)
       throw new Error(`BaseRouter.buildPath: route "${name}" not found`);
-    }
 
-    const segments = this.normalizePath(route.pattern)
-      .split('/')
-      .filter(Boolean);
+    const segments = normalizePath(route.pattern).split('/').filter(Boolean);
     const resultSegments: string[] = [];
 
     for (const segment of segments) {
-      if (this.isWildcardSegment(segment)) {
-        const paramName = this.getWildcardParamName(segment);
+      if (isWildcardSegment(segment)) {
+        const paramName = getWildcardParamName(segment);
         const value = params?.[paramName];
-        if (value !== undefined) {
-          resultSegments.push(String(value));
-        }
+        if (value !== undefined) resultSegments.push(String(value));
+
         break;
       }
 
@@ -1228,13 +887,13 @@ export class BaseRouter<
         const paramName = segment.slice(1, isOptional ? -1 : undefined);
         const value = params?.[paramName];
 
-        if (value !== undefined) {
+        if (value !== undefined)
           resultSegments.push(encodeURIComponent(String(value)));
-        } else if (!isOptional) {
+        else if (!isOptional)
           throw new Error(
             `BaseRouter.buildPath: missing required param "${paramName}" for route "${name}"`,
           );
-        }
+
         continue;
       }
 
@@ -1294,21 +953,21 @@ export class BaseRouter<
   };
 
   public isActive = (path: string): boolean => {
-    const normalized = this.normalizePath(
+    const normalized = normalizePath(
       new URL(path.startsWith('/') ? path : `/${path}`, window.location.origin)
         .pathname,
     );
     const current = this.currentPathname();
-    if (this.caseSensitive) {
+    if (this.caseSensitive)
       return current === normalized || current.startsWith(normalized + '/');
-    }
+
     const n = normalized.toLowerCase();
     const c = current.toLowerCase();
     return c === n || c.startsWith(n + '/');
   };
 
   public isExact = (path: string): boolean => {
-    const normalized = this.normalizePath(
+    const normalized = normalizePath(
       new URL(path.startsWith('/') ? path : `/${path}`, window.location.origin)
         .pathname,
     );
@@ -1338,40 +997,6 @@ export class BaseRouter<
     return this.routes.some((r) => r.name === name);
   };
 
-  protected validateParams = (
-    params: RouteParams,
-    validators: Record<string, RegExp | string[]>,
-  ): boolean => {
-    return Object.entries(validators).every(([key, validator]) => {
-      const value = params[key];
-      if (value === undefined) return true;
-      if (Array.isArray(validator)) return validator.includes(value);
-      return validator.test(value);
-    });
-  };
-
-  protected applyQueryParamConfig = (
-    searchParams: SearchParams,
-    config?: Record<string, QueryParamConfig>,
-  ): { valid: boolean; searchParams: SearchParams } => {
-    if (!config) return { valid: true, searchParams };
-
-    const result: SearchParams = { ...searchParams };
-
-    for (const [key, paramConfig] of Object.entries(config)) {
-      if (result[key] === undefined) {
-        if (paramConfig.required && paramConfig.default === undefined) {
-          return { valid: false, searchParams: result };
-        }
-        if (paramConfig.default !== undefined) {
-          result[key] = paramConfig.default;
-        }
-      }
-    }
-
-    return { valid: true, searchParams: result };
-  };
-
   public resolveRoute = (
     path: string,
     options?: { runMiddlewares?: boolean },
@@ -1383,7 +1008,7 @@ export class BaseRouter<
       return null;
     }
 
-    const { pathname, searchParams } = this.parseUrl(url);
+    const { pathname, searchParams } = parseUrl(url);
 
     if (options?.runMiddlewares) {
       const globalResult = this.runMiddlewares(this.middlewares, {
@@ -1395,15 +1020,15 @@ export class BaseRouter<
     }
 
     for (const route of this.routes) {
-      const match = this.matchRoute(route.pattern, pathname);
+      const match = matchRoute(route.pattern, pathname, this.caseSensitive);
       if (!match) continue;
       if (
         route.paramValidators &&
-        !this.validateParams(match, route.paramValidators)
+        !validateParams(match, route.paramValidators)
       )
         continue;
 
-      const queryResult = this.applyQueryParamConfig(
+      const queryResult = applyQueryParamConfig(
         searchParams,
         route.queryParams,
       );
@@ -1417,11 +1042,8 @@ export class BaseRouter<
           meta: route.meta,
         });
         if (routeResult) {
-          if (routeResult.type === ResolveResultType.Error) {
-            return null;
-          } else {
-            continue;
-          }
+          if (routeResult.type === ResolveResultType.Error) return null;
+          else continue;
         }
       }
 
@@ -1449,49 +1071,27 @@ export class BaseRouter<
       throw new Error(`BaseRouter.navigateExternal: invalid URL "${url}"`);
     }
 
-    if (!['http:', 'https:', 'mailto:', 'tel:'].includes(parsed.protocol)) {
+    if (!['http:', 'https:', 'mailto:', 'tel:'].includes(parsed.protocol))
       throw new Error(
         `BaseRouter.navigateExternal: unsafe protocol "${parsed.protocol}"`,
       );
-    }
 
     if (parsed.origin === window.location.origin) {
       const internalPath =
-        this.stripBase(parsed.pathname) + parsed.search + parsed.hash;
+        stripBase(parsed.pathname, this.base) + parsed.search + parsed.hash;
       this.navigate(internalPath);
       return;
     }
 
-    if (options?.target === '_blank') {
+    if (options?.target === '_blank')
       window.open(url, '_blank', 'noopener,noreferrer');
-    } else {
-      window.location.href = url;
-    }
-  };
-
-  protected normalizeBase = (base: string): string => {
-    if (!base || base === '/') return '';
-    return base.endsWith('/') ? base.slice(0, -1) : base;
-  };
-
-  protected stripBase = (pathname: string): string => {
-    if (!this.base) return pathname;
-    if (pathname === this.base) return '/';
-    if (pathname.startsWith(this.base + '/'))
-      return pathname.slice(this.base.length);
-    return pathname;
-  };
-
-  protected addBase = (pathname: string): string => {
-    if (!this.base) return pathname;
-    if (pathname === '/') return this.base + '/';
-    return this.base + pathname;
+    else window.location.href = url;
   };
 
   public createHref = (path: string): string => {
     const url = this.resolveTo(path);
     return (
-      this.addBase(this.normalizePath(url.pathname)) + url.search + url.hash
+      addBase(normalizePath(url.pathname), this.base) + url.search + url.hash
     );
   };
 }

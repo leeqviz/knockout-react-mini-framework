@@ -1,4 +1,4 @@
-import { BaseEventBus } from './event-bus';
+import { BaseEventBus } from './lib';
 import type { AppEventPayloadMap } from './types';
 
 export class AppEventBus extends BaseEventBus<AppEventPayloadMap> {

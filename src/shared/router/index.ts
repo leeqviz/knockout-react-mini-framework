@@ -1,8 +1,7 @@
 export { RouterLink, RouterProvider } from './components';
 export { useRouter } from './hooks';
-export { ResolveResultType } from './route';
+export { RouterContext } from './lib';
 export { BaseRouter } from './router';
-export { RouterContext } from './router-context';
 export type {
   AfterNavigateHook,
   BlockedResult,
@@ -36,3 +35,32 @@ export type {
   SearchParamValue,
   StateCompareStrategy,
 } from './types';
+export {
+  addBase,
+  applyQueryParamConfig,
+  applyScrollTarget,
+  compareDeep,
+  compareReference,
+  compareShallow,
+  defaultScrollBehavior,
+  generateHistoryKey,
+  getCurrentFullPath,
+  getRouteScore,
+  getWildcardParamName,
+  isWildcardSegment,
+  matchRoute,
+  matchSegments,
+  normalizeBase,
+  normalizeFullPath,
+  normalizePath,
+  parseUrl,
+  rankRoutes,
+  readHistoryState,
+  resolveComparator,
+  ResolveResultType,
+  scheduleScrollToFragment,
+  scrollToFragment,
+  stripBase,
+  validateParams,
+  wrapState,
+} from './utils';

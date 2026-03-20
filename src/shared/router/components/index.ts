@@ -1,2 +1,2 @@
-export { RouterLink } from './link';
-export { RouterProvider } from './provider';
+export { RouterLink } from './router-link';
+export { RouterProvider } from './router-provider';

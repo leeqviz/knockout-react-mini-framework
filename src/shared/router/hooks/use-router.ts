@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { RouterContext } from '../router-context';
+import { RouterContext } from '../lib';
 import type { RouterSnapshot } from '../types';
 
 export function useRouter(): RouterSnapshot {
