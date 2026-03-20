@@ -4,6 +4,8 @@ import type { RouteMiddleware } from './middleware';
 export interface RouteConfig {
   pattern: string;
   component: string;
+  name?: string; // id
+  meta?: Record<string, unknown>;
   middlewares?: RouteMiddleware[] | undefined;
 }
 
@@ -26,6 +28,8 @@ export interface ResolvedRouteState {
   searchParams: SearchParams;
   state: unknown;
   hash: string;
+  name: string | undefined;
+  meta: Record<string, unknown> | undefined;
 }
 
 export type BlockedResult = {

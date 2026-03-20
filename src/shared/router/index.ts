@@ -5,6 +5,7 @@ export { BaseRouter } from './router';
 export { RouterContext } from './router-context';
 export type {
   BlockedResult,
+  BuildPathSearch,
   ErrorResult,
   InternalHistoryState,
   NavigateOptions,

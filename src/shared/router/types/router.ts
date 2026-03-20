@@ -29,14 +29,32 @@ export interface NavigateOptions {
 
 export interface RouterSnapshot {
   navigate: (path: string, options?: NavigateOptions) => void;
+  navigateByName: (
+    name: string,
+    params?: RouteParams,
+    search?: SearchParams,
+    hash?: string,
+    options?: NavigateOptions,
+  ) => void;
+  buildPath: (
+    name: string,
+    params?: RouteParams,
+    search?: BuildPathSearch,
+  ) => string;
+
   params: RouteParams;
   searchParams: SearchParams;
+  route: {
+    name: string | undefined;
+    meta: Record<string, unknown> | undefined;
+  };
   location: {
     pathname: string;
     search: string;
     hash: string;
     state: unknown;
   };
+
   setSearchParam: (
     key: string,
     value: string,
@@ -79,3 +97,5 @@ export interface InternalHistoryState {
   __routerKey: string;
   data: unknown;
 }
+
+export type BuildPathSearch = SearchParams | URLSearchParams;

@@ -2,6 +2,7 @@ import { ko } from '@/shared/lib/ko';
 import { ResolveResultType } from './route';
 import type {
   BlockedResult,
+  BuildPathSearch,
   ErrorResult,
   InternalHistoryState,
   NavigateOptions,
@@ -42,6 +43,8 @@ export class BaseRouter {
   public currentSearchParams: KnockoutObservable<SearchParams>;
   public currentHistoryState: KnockoutObservable<unknown>;
   public currentHash: KnockoutObservable<string>;
+  public currentRouteName: KnockoutObservable<string | undefined>;
+  public currentMeta: KnockoutObservable<Record<string, unknown> | undefined>;
 
   protected static readonly defaultScrollBehavior: ScrollBehaviorFn = (
     _to,
@@ -128,6 +131,8 @@ export class BaseRouter {
     );
 
     this.currentComponent = ko.observable(initialMatch?.component ?? '');
+    this.currentRouteName = ko.observable(initialMatch?.name);
+    this.currentMeta = ko.observable(initialMatch?.meta);
     this.currentParams = ko.observable({});
     this.currentPathname = ko.observable(
       this.normalizePath(initialUrl.pathname),
@@ -136,7 +141,10 @@ export class BaseRouter {
     this.currentSearchParams = ko.observable(
       this.parseUrl(initialUrl).searchParams,
     );
-    this.currentHistoryState = ko.observable(window.history.state ?? null);
+    const { data: initialUserState } = this.readHistoryState(
+      window.history.state,
+    );
+    this.currentHistoryState = ko.observable(initialUserState);
     this.currentHash = ko.observable(initialUrl.hash);
   }
 
@@ -306,37 +314,25 @@ export class BaseRouter {
     return this.normalizePath(url.pathname) + url.search;
   };
 
-  /* public setSearchParams = (
-    newParams: SearchParamsPatch,
-    options?: NavigateOptions,
-  ): void => {
-    const url = new URL(window.location.href);
-
-    Object.entries(newParams).forEach(([key, value]) => {
-      if (value === null || value === undefined) {
-        url.searchParams.delete(key);
-      } else {
-        url.searchParams.set(key, String(value));
-      }
-    });
-
-    this.navigate(url.pathname + url.search, {
-      replace: options?.replace ?? true,
-      state: options?.state ?? this.currentHistoryState(),
-    });
-  }; */
-
   public getSnapshot = (): RouterSnapshot => {
     return {
       navigate: this.navigate,
+      navigateByName: this.navigateByName,
+      buildPath: this.buildPath,
+
       params: this.currentParams(),
       searchParams: this.currentSearchParams(),
+      route: {
+        name: this.currentRouteName(),
+        meta: this.currentMeta(),
+      },
       location: {
         pathname: this.currentPathname(),
         hash: this.currentHash(),
         search: this.currentSearch(),
         state: this.currentHistoryState(),
       },
+
       setSearchParam: this.setSearchParam,
       appendSearchParam: this.appendSearchParam,
       deleteSearchParam: this.deleteSearchParam,
@@ -464,6 +460,8 @@ export class BaseRouter {
           component: res.value.component,
           params: res.value.params,
           state,
+          name: res.value.name,
+          meta: res.value.meta,
         };
         this.applyState(nextRouteState);
         this.handleScroll(nextRouteState, savedPosition);
@@ -492,6 +490,7 @@ export class BaseRouter {
         pathname,
         search,
         state,
+        meta: route.meta,
       });
 
       if (middlewareResult) return middlewareResult;
@@ -506,6 +505,8 @@ export class BaseRouter {
           params: match,
           searchParams,
           state,
+          name: route.name,
+          meta: route.meta,
         },
       };
     }
@@ -520,6 +521,8 @@ export class BaseRouter {
         params: {},
         searchParams,
         state,
+        name: undefined,
+        meta: undefined,
       },
     };
   };
@@ -598,6 +601,8 @@ export class BaseRouter {
     this.currentParams(nextState.params);
     this.currentSearchParams(nextState.searchParams);
     this.currentHistoryState(nextState.state);
+    this.currentRouteName(nextState.name);
+    this.currentMeta(nextState.meta);
   };
 
   protected scheduleScrollToFragment = (hash: string): void => {
@@ -675,6 +680,14 @@ export class BaseRouter {
   };
 
   protected rankRoutes = (routes: RouteConfig[]): RouteConfig[] => {
+    const names = routes.map((r) => r.name).filter(Boolean);
+    const duplicates = names.filter((n, i) => names.indexOf(n) !== i);
+    if (duplicates.length > 0) {
+      throw new Error(
+        `BaseRouter: duplicate route names found: ${[...new Set(duplicates)].join(', ')}`,
+      );
+    }
+
     return routes
       .map((route, index) => ({
         route,
@@ -858,6 +871,8 @@ export class BaseRouter {
     params: this.currentParams(),
     searchParams: this.currentSearchParams(),
     state: this.currentHistoryState(),
+    name: this.currentRouteName(),
+    meta: this.currentMeta(),
   });
 
   protected applyScrollTarget = (target: ScrollTarget): void => {
@@ -1000,5 +1015,87 @@ export class BaseRouter {
       replace: options?.replace ?? true,
       state: options?.state ?? this.currentHistoryState(),
     });
+  };
+
+  public buildPath = (
+    name: string,
+    params?: RouteParams,
+    search?: BuildPathSearch,
+    hash?: string,
+  ): string => {
+    const route = this.routes.find((r) => r.name === name);
+
+    if (!route) {
+      throw new Error(`BaseRouter.buildPath: route "${name}" not found`);
+    }
+
+    const segments = this.normalizePath(route.pattern)
+      .split('/')
+      .filter(Boolean);
+    const resultSegments: string[] = [];
+
+    for (const segment of segments) {
+      if (this.isWildcardSegment(segment)) {
+        const paramName = this.getWildcardParamName(segment);
+        const value = params?.[paramName];
+        if (value !== undefined) {
+          resultSegments.push(String(value));
+        }
+        break;
+      }
+
+      if (segment.startsWith(':')) {
+        const isOptional = segment.endsWith('?');
+        const paramName = segment.slice(1, isOptional ? -1 : undefined);
+        const value = params?.[paramName];
+
+        if (value !== undefined) {
+          resultSegments.push(encodeURIComponent(String(value)));
+        } else if (!isOptional) {
+          throw new Error(
+            `BaseRouter.buildPath: missing required param "${paramName}" for route "${name}"`,
+          );
+        }
+        continue;
+      }
+
+      resultSegments.push(segment);
+    }
+
+    const pathname = '/' + resultSegments.join('/');
+    const hashStr = hash ? (hash.startsWith('#') ? hash : `#${hash}`) : '';
+
+    if (!search) return `${pathname}${hashStr}`;
+
+    const sp =
+      search instanceof URLSearchParams
+        ? search
+        : (() => {
+            const instance = new URLSearchParams();
+            Object.entries(search).forEach(([key, value]) => {
+              if (Array.isArray(value)) {
+                value.forEach((v) => instance.append(key, v));
+              } else {
+                instance.set(key, value);
+              }
+            });
+            return instance;
+          })();
+
+    const searchStr = sp.toString();
+    return searchStr
+      ? `${pathname}?${searchStr}${hashStr}`
+      : `${pathname}${hashStr}`;
+  };
+
+  public navigateByName = (
+    name: string,
+    params?: RouteParams,
+    search?: SearchParams,
+    hash?: string,
+    options?: NavigateOptions,
+  ): void => {
+    const path = this.buildPath(name, params, search, hash);
+    this.navigate(path, options);
   };
 }

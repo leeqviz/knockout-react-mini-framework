@@ -4,6 +4,7 @@ export interface RouteMiddlewareContext {
   pathname: string;
   search: string;
   state: unknown;
+  meta?: Record<string, unknown> | undefined;
 }
 
 export type RouteMiddlewareResult = void | ResolveResult;

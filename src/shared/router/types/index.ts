@@ -18,6 +18,7 @@ export type {
   SearchParamValue,
 } from './route';
 export type {
+  BuildPathSearch,
   InternalHistoryState,
   NavigateOptions,
   RouterOptions,
