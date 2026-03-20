@@ -23,4 +23,5 @@ export type {
   ScrollBehaviorFn,
   ScrollPosition,
   ScrollTarget,
+  StateCompareStrategy,
 } from './router';

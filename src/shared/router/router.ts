@@ -21,6 +21,7 @@ import type {
   ScrollPosition,
   ScrollTarget,
   SearchParamsPatch,
+  StateCompareStrategy,
 } from './types';
 
 export class BaseRouter {
@@ -30,6 +31,7 @@ export class BaseRouter {
   protected currentHistoryKey: string = '';
   protected previousRouteState: ResolvedRouteState | null = null;
   protected readonly scrollBehavior: ScrollBehaviorFn;
+  protected readonly stateCompare: (a: unknown, b: unknown) => boolean;
   protected isStarted: boolean = false;
 
   public currentComponent: KnockoutObservable<string>;
@@ -55,11 +57,69 @@ export class BaseRouter {
     */
   };
 
+  protected static readonly stateComparators = {
+    reference: (a: unknown, b: unknown): boolean => a === b,
+
+    shallow: (a: unknown, b: unknown): boolean => {
+      if (a === b) return true;
+      if (a === null || b === null) return false;
+      if (typeof a !== 'object' || typeof b !== 'object') return false;
+
+      const keysA = Object.keys(a as object);
+      const keysB = Object.keys(b as object);
+
+      if (keysA.length !== keysB.length) return false;
+
+      return keysA.every(
+        (key) =>
+          (b as Record<string, unknown>)[key] ===
+          (a as Record<string, unknown>)[key],
+      );
+    },
+
+    deep: (a: unknown, b: unknown): boolean => {
+      if (a === b) return true;
+      if (a === null || b === null) return a === b;
+      if (typeof a !== typeof b) return false;
+      if (typeof a !== 'object') return a === b;
+
+      if (Array.isArray(a) !== Array.isArray(b)) return false;
+
+      const keysA = Object.keys(a as object);
+      const keysB = Object.keys(b as object);
+
+      if (keysA.length !== keysB.length) return false;
+
+      return keysA.every((key) =>
+        BaseRouter.stateComparators.deep(
+          (a as Record<string, unknown>)[key],
+          (b as Record<string, unknown>)[key],
+        ),
+      );
+    },
+  } as const;
+
+  protected static resolveComparator(
+    strategy: StateCompareStrategy | undefined,
+  ): (a: unknown, b: unknown) => boolean {
+    if (!strategy || strategy === 'reference') {
+      return BaseRouter.stateComparators.reference;
+    }
+    if (strategy === 'shallow') return BaseRouter.stateComparators.shallow;
+    if (strategy === 'deep') return BaseRouter.stateComparators.deep;
+    return strategy;
+    /* custom
+      if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return a === b;
+      return (a as { id?: unknown }).id === (b as { id?: unknown }).id;
+    */
+  }
+
   protected constructor(options?: RouterOptions) {
     this.routes = this.rankRoutes(options?.routes ?? []);
     this.middlewares = options?.middlewares || [];
     this.scrollBehavior =
       options?.scrollBehavior ?? BaseRouter.defaultScrollBehavior;
+    this.stateCompare = BaseRouter.resolveComparator(options?.stateCompare);
 
     const initialUrl = new URL(window.location.href);
     const initialMatch = this.routes.find((r) =>
@@ -156,11 +216,15 @@ export class BaseRouter {
     );
     const nextState = options?.state ?? null;
 
+    const comparator = options?.stateCompare
+      ? BaseRouter.resolveComparator(options.stateCompare)
+      : this.stateCompare;
+
     const samePath = currentFullPath === nextFullPath;
-    const sameState = currentUserState === nextState;
+    const sameState = comparator(currentUserState, nextState);
     const sameHash = this.currentHash() === nextHash;
 
-    if (samePath && sameState && sameHash) return;
+    if (!options?.force && samePath && sameState && sameHash) return;
 
     if (samePath && sameState && !sameHash) {
       const fullUrlWithHash = currentFullPath + nextHash;

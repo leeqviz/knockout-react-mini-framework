@@ -24,4 +24,5 @@ export type {
   ScrollPosition,
   ScrollTarget,
   SearchParamsPatch,
+  StateCompareStrategy,
 } from './types';
