@@ -3,6 +3,7 @@ import { ResolveResultType } from './route';
 import type {
   BlockedResult,
   ErrorResult,
+  InternalHistoryState,
   NavigateOptions,
   RedirectResult,
   ResolvedResult,
@@ -16,12 +17,19 @@ import type {
   RouteParams,
   RouterOptions,
   RouterSnapshot,
+  ScrollBehaviorFn,
+  ScrollPosition,
+  ScrollTarget,
   SearchParamsPatch,
 } from './types';
 
 export class BaseRouter {
   protected routes: RouteConfig[];
   protected middlewares: RouteMiddleware[];
+  protected scrollPositions = new Map<string, ScrollPosition>();
+  protected currentHistoryKey: string = '';
+  protected previousRouteState: ResolvedRouteState | null = null;
+  protected readonly scrollBehavior: ScrollBehaviorFn;
   protected isStarted: boolean = false;
 
   public currentComponent: KnockoutObservable<string>;
@@ -32,9 +40,26 @@ export class BaseRouter {
   public currentHistoryState: KnockoutObservable<unknown>;
   public currentHash: KnockoutObservable<string>;
 
+  protected static readonly defaultScrollBehavior: ScrollBehaviorFn = (
+    _to,
+    _from,
+    savedPosition,
+  ) => {
+    if (savedPosition) return savedPosition;
+    return 'top';
+    /* Custom 
+      if (savedPosition) return savedPosition;           
+      if (to.hash) return null;                          
+      if (to.meta?.scrollMode === 'preserve') return 'preserve'; 
+      return 'top';
+    */
+  };
+
   protected constructor(options?: RouterOptions) {
     this.routes = this.rankRoutes(options?.routes ?? []);
     this.middlewares = options?.middlewares || [];
+    this.scrollBehavior =
+      options?.scrollBehavior ?? BaseRouter.defaultScrollBehavior;
 
     const initialUrl = new URL(window.location.href);
     const initialMatch = this.routes.find((r) =>
@@ -57,15 +82,28 @@ export class BaseRouter {
   public start = (): void => {
     if (this.isStarted) return;
     this.isStarted = true;
+
+    window.history.scrollRestoration = 'manual';
     window.addEventListener('popstate', this.handlePopState);
 
     const fullPath = this.getCurrentFullPath();
     const initialHash = window.location.hash;
-    const state = window.history.state ?? null;
+    const rawState = window.history.state;
+    const { key, data: userState } = this.readHistoryState(rawState);
+    this.currentHistoryKey = key;
+
+    if (!rawState || !('__routerKey' in Object(rawState))) {
+      window.history.replaceState(
+        this.wrapState(userState, key),
+        '',
+        fullPath + initialHash,
+      );
+    }
+
     const originalUrl = this.parseUrl(
-      new URL(fullPath, window.location.origin),
+      new URL(fullPath + initialHash, window.location.origin),
     );
-    const result = this.resolvePath(fullPath, state);
+    const result = this.resolvePath(fullPath, userState);
 
     this.handleResolveResult(result, {
       onBlocked: () => {},
@@ -76,22 +114,24 @@ export class BaseRouter {
         });
       },
       onRewrite: (res) => {
-        this.resolveRewrite(originalUrl, res.to, state);
+        this.resolveRewrite(originalUrl, res.to, userState);
       },
       onError: (res) => {
         throw res.error;
       },
       onResolved: (res) => {
-        this.applyState({ ...res.value, hash: initialHash });
-        this.scheduleScrollToFragment(initialHash);
+        const nextState = { ...res.value, hash: initialHash };
+        this.applyState(nextState);
+        this.handleScroll(nextState, null);
       },
     });
   };
 
   public dispose = (): void => {
     if (!this.isStarted) return;
-
     this.isStarted = false;
+
+    window.history.scrollRestoration = 'auto';
     window.removeEventListener('popstate', this.handlePopState);
   };
 
@@ -110,10 +150,14 @@ export class BaseRouter {
     const nextFullPath = this.normalizePath(nextUrl.pathname) + nextUrl.search;
     const nextHash = nextUrl.hash;
     const currentFullPath = this.getCurrentFullPath();
+
+    const { data: currentUserState } = this.readHistoryState(
+      window.history.state,
+    );
     const nextState = options?.state ?? null;
 
     const samePath = currentFullPath === nextFullPath;
-    const sameState = window.history.state === nextState;
+    const sameState = currentUserState === nextState;
     const sameHash = this.currentHash() === nextHash;
 
     if (samePath && sameState && sameHash) return;
@@ -121,9 +165,22 @@ export class BaseRouter {
     if (samePath && sameState && !sameHash) {
       const fullUrlWithHash = currentFullPath + nextHash;
 
-      if (options?.replace)
-        window.history.replaceState(nextState, '', fullUrlWithHash);
-      else window.history.pushState(nextState, '', fullUrlWithHash);
+      if (options?.replace) {
+        window.history.replaceState(
+          this.wrapState(nextState, this.currentHistoryKey),
+          '',
+          fullUrlWithHash,
+        );
+      } else {
+        this.saveCurrentScrollPosition();
+        const newKey = this.generateHistoryKey();
+        this.currentHistoryKey = newKey;
+        window.history.pushState(
+          this.wrapState(nextState, newKey),
+          '',
+          fullUrlWithHash,
+        );
+      }
 
       this.currentHash(nextHash);
       this.currentHistoryState(nextState);
@@ -133,7 +190,7 @@ export class BaseRouter {
 
     const result = this.resolvePath(nextFullPath, nextState);
     const originalUrl = this.parseUrl(
-      new URL(nextFullPath, window.location.origin),
+      new URL(nextFullPath + nextHash, window.location.origin),
     );
 
     this.handleResolveResult(result, {
@@ -154,12 +211,27 @@ export class BaseRouter {
       },
       onResolved: (res) => {
         const normalizedPath = res.value.pathname + res.value.search + nextHash;
-        if (options?.replace)
-          window.history.replaceState(nextState, '', normalizedPath);
-        else window.history.pushState(nextState, '', normalizedPath);
 
-        this.applyState({ ...res.value, hash: nextHash });
-        this.scheduleScrollToFragment(nextHash);
+        if (options?.replace) {
+          window.history.replaceState(
+            this.wrapState(nextState, this.currentHistoryKey),
+            '',
+            normalizedPath,
+          );
+        } else {
+          this.saveCurrentScrollPosition();
+          const newKey = this.generateHistoryKey();
+          this.currentHistoryKey = newKey;
+          window.history.pushState(
+            this.wrapState(nextState, newKey),
+            '',
+            normalizedPath,
+          );
+        }
+
+        const nextRouteState = { ...res.value, hash: nextHash };
+        this.applyState(nextRouteState);
+        this.handleScroll(nextRouteState, null);
       },
     });
   };
@@ -205,20 +277,27 @@ export class BaseRouter {
   };
 
   protected handlePopState = (): void => {
+    this.saveCurrentScrollPosition();
+
     const previousFullPath = this.currentPathname() + this.currentSearch();
     const previousHash = this.currentHash();
     const previousState = this.currentHistoryState();
+    const previousHistoryKey = this.currentHistoryKey;
 
     const nextFullPath = this.getCurrentFullPath();
     const nextHash = window.location.hash;
-    const nextState = window.history.state ?? null;
+    const { key: nextKey, data: nextUserState } = this.readHistoryState(
+      window.history.state,
+    );
+
+    const savedPosition = this.scrollPositions.get(nextKey) ?? null;
+    this.currentHistoryKey = nextKey;
 
     const samePath = previousFullPath === nextFullPath;
 
-    // Fragment-only popstate
     if (samePath) {
       this.currentHash(nextHash);
-      this.currentHistoryState(nextState);
+      this.currentHistoryState(nextUserState);
       this.scheduleScrollToFragment(nextHash);
       return;
     }
@@ -226,20 +305,22 @@ export class BaseRouter {
     const originalUrl = this.parseUrl(
       new URL(nextFullPath + nextHash, window.location.origin),
     );
-    const result = this.resolvePath(nextFullPath, nextState);
+    const result = this.resolvePath(nextFullPath, nextUserState);
 
     this.handleResolveResult(result, {
       onBlocked: () => {
+        this.currentHistoryKey = previousHistoryKey;
         window.history.replaceState(
-          previousState ?? null,
+          this.wrapState(previousState, previousHistoryKey),
           '',
           previousFullPath + previousHash,
         );
       },
       onRedirect: (res) => {
         if (this.normalizeFullPath(res.to) === nextFullPath) {
+          this.currentHistoryKey = previousHistoryKey;
           window.history.replaceState(
-            previousState ?? null,
+            this.wrapState(previousState, previousHistoryKey),
             '',
             previousFullPath + previousHash,
           );
@@ -252,14 +333,15 @@ export class BaseRouter {
         });
       },
       onRewrite: (res) => {
-        this.resolveRewrite(originalUrl, res.to, nextState);
+        this.resolveRewrite(originalUrl, res.to, nextUserState, savedPosition);
       },
       onError: (res) => {
         throw res.error;
       },
       onResolved: (res) => {
-        this.applyState({ ...res.value, hash: nextHash });
-        this.scheduleScrollToFragment(nextHash);
+        const nextRouteState = { ...res.value, hash: nextHash };
+        this.applyState(nextRouteState);
+        this.handleScroll(nextRouteState, savedPosition);
       },
     });
   };
@@ -273,6 +355,7 @@ export class BaseRouter {
     },
     rewriteTo: string,
     state: unknown,
+    savedPosition: ScrollPosition | null = null,
     depth: number = 0,
   ): void => {
     if (depth > 10) {
@@ -289,22 +372,29 @@ export class BaseRouter {
         this.navigate(res.to, { replace: res.replace ?? false, state });
       },
       onRewrite: (res) => {
-        this.resolveRewrite(originalUrl, res.to, state, depth + 1);
+        this.resolveRewrite(
+          originalUrl,
+          res.to,
+          state,
+          savedPosition,
+          depth + 1,
+        );
       },
       onError: (res) => {
         throw res.error;
       },
       onResolved: (res) => {
-        this.applyState({
+        const nextRouteState = {
           pathname: originalUrl.pathname,
           search: originalUrl.search,
           searchParams: originalUrl.searchParams,
+          hash: originalUrl.hash,
           component: res.value.component,
           params: res.value.params,
-          hash: originalUrl.hash,
           state,
-        });
-        this.scheduleScrollToFragment(originalUrl.hash);
+        };
+        this.applyState(nextRouteState);
+        this.handleScroll(nextRouteState, savedPosition);
       },
     });
   };
@@ -415,6 +505,7 @@ export class BaseRouter {
   };
 
   protected applyState = (nextState: ResolvedRouteState): void => {
+    this.previousRouteState = this.captureCurrentRouteState();
     this.currentPathname(nextState.pathname);
     this.currentSearch(nextState.search);
     this.currentHash(nextState.hash);
@@ -492,7 +583,7 @@ export class BaseRouter {
     }
   };
 
-  private getCurrentFullPath = (): string => {
+  protected getCurrentFullPath = (): string => {
     return (
       this.normalizePath(window.location.pathname) + window.location.search
     );
@@ -633,5 +724,83 @@ export class BaseRouter {
       pathIndex + 1,
       params,
     );
+  };
+
+  protected generateHistoryKey = (): string => {
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  };
+
+  protected wrapState = (
+    userState: unknown,
+    key?: string,
+  ): InternalHistoryState => ({
+    __routerKey: key ?? this.generateHistoryKey(),
+    data: userState,
+  });
+
+  protected readHistoryState = (
+    raw: unknown,
+  ): { key: string; data: unknown } => {
+    if (
+      raw !== null &&
+      typeof raw === 'object' &&
+      '__routerKey' in (raw as object)
+    ) {
+      const entry = raw as InternalHistoryState;
+      return { key: entry.__routerKey, data: entry.data };
+    }
+    return { key: this.generateHistoryKey(), data: raw };
+  };
+
+  protected saveCurrentScrollPosition = (): void => {
+    if (!this.currentHistoryKey) return;
+    this.scrollPositions.set(this.currentHistoryKey, {
+      x: window.scrollX,
+      y: window.scrollY,
+    });
+
+    if (this.scrollPositions.size > 50) {
+      const firstKey = this.scrollPositions.keys().next().value;
+      if (firstKey) this.scrollPositions.delete(firstKey);
+    }
+  };
+
+  protected captureCurrentRouteState = (): ResolvedRouteState => ({
+    pathname: this.currentPathname(),
+    search: this.currentSearch(),
+    hash: this.currentHash(),
+    component: this.currentComponent(),
+    params: this.currentParams(),
+    searchParams: this.currentSearchParams(),
+    state: this.currentHistoryState(),
+  });
+
+  protected applyScrollTarget = (target: ScrollTarget): void => {
+    if (!target || target === 'preserve') return;
+
+    requestAnimationFrame(() => {
+      if (target === 'top') {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        return;
+      }
+      window.scrollTo({ top: target.y, left: target.x, behavior: 'instant' });
+    });
+  };
+
+  protected handleScroll = (
+    to: ResolvedRouteState,
+    savedPosition: ScrollPosition | null,
+  ): void => {
+    if (to.hash) {
+      this.scheduleScrollToFragment(to.hash);
+      return;
+    }
+
+    const target = this.scrollBehavior(
+      to,
+      this.previousRouteState,
+      savedPosition,
+    );
+    this.applyScrollTarget(target);
   };
 }

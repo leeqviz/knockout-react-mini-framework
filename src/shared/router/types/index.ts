@@ -15,4 +15,12 @@ export type {
   RouteParams,
   SearchParamsPatch,
 } from './route';
-export type { NavigateOptions, RouterOptions, RouterSnapshot } from './router';
+export type {
+  InternalHistoryState,
+  NavigateOptions,
+  RouterOptions,
+  RouterSnapshot,
+  ScrollBehaviorFn,
+  ScrollPosition,
+  ScrollTarget,
+} from './router';

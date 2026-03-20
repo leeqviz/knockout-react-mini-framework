@@ -1,9 +1,15 @@
 import type { RouteMiddleware } from './middleware';
-import type { RouteConfig, RouteParams, SearchParamsPatch } from './route';
+import type {
+  ResolvedRouteState,
+  RouteConfig,
+  RouteParams,
+  SearchParamsPatch,
+} from './route';
 
 export interface RouterOptions {
   routes?: RouteConfig[] | undefined;
   middlewares?: RouteMiddleware[] | undefined;
+  scrollBehavior?: ScrollBehaviorFn;
 }
 
 export interface NavigateOptions {
@@ -25,4 +31,19 @@ export interface RouterSnapshot {
     newParams: SearchParamsPatch,
     options?: NavigateOptions,
   ) => void;
+}
+
+export type ScrollPosition = { x: number; y: number };
+
+export type ScrollTarget = ScrollPosition | 'top' | 'preserve' | null;
+
+export type ScrollBehaviorFn = (
+  to: ResolvedRouteState,
+  from: ResolvedRouteState | null,
+  savedPosition: ScrollPosition | null,
+) => ScrollTarget;
+
+export interface InternalHistoryState {
+  __routerKey: string;
+  data: unknown;
 }

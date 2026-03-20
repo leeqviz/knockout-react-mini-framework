@@ -6,6 +6,7 @@ export { RouterContext } from './router-context';
 export type {
   BlockedResult,
   ErrorResult,
+  InternalHistoryState,
   NavigateOptions,
   RedirectResult,
   ResolvedResult,
@@ -19,5 +20,8 @@ export type {
   RouteParams,
   RouterOptions,
   RouterSnapshot,
+  ScrollBehaviorFn,
+  ScrollPosition,
+  ScrollTarget,
   SearchParamsPatch,
 } from './types';
