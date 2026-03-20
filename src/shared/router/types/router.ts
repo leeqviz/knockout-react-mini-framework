@@ -18,6 +18,7 @@ export interface RouterSnapshot {
   location: {
     pathname: string;
     search: string;
+    hash: string;
     state: unknown;
   };
   setSearchParams: (

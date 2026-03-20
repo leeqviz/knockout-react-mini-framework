@@ -21,6 +21,7 @@ export interface ResolvedRouteState {
   params: RouteParams;
   searchParams: RouteParams;
   state: unknown;
+  hash: string;
 }
 
 export type BlockedResult = {

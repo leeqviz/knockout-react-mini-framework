@@ -10,6 +10,7 @@ export const mockedRouterContextValue: RouterSnapshot = {
   location: {
     pathname: '/',
     search: '',
+    hash: '',
     state: null,
   },
   setSearchParams: vi.fn(),

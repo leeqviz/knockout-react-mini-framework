@@ -30,6 +30,7 @@ export class BaseRouter {
   public currentSearch: KnockoutObservable<string>;
   public currentSearchParams: KnockoutObservable<RouteParams>;
   public currentHistoryState: KnockoutObservable<unknown>;
+  public currentHash: KnockoutObservable<string>;
 
   protected constructor(options?: RouterOptions) {
     this.routes = this.rankRoutes(options?.routes ?? []);
@@ -41,15 +42,16 @@ export class BaseRouter {
     );
 
     this.currentComponent = ko.observable(initialMatch?.component ?? '');
-    this.currentParams = ko.observable<RouteParams>({});
-    this.currentPathname = ko.observable<string>(
+    this.currentParams = ko.observable({});
+    this.currentPathname = ko.observable(
       this.normalizePath(initialUrl.pathname),
     );
-    this.currentSearch = ko.observable<string>(initialUrl.search);
+    this.currentSearch = ko.observable(initialUrl.search);
     this.currentSearchParams = ko.observable(
       Object.fromEntries(initialUrl.searchParams.entries()),
     );
     this.currentHistoryState = ko.observable(window.history.state ?? null);
+    this.currentHash = ko.observable(initialUrl.hash);
   }
 
   public start = (): void => {
@@ -58,6 +60,7 @@ export class BaseRouter {
     window.addEventListener('popstate', this.handlePopState);
 
     const fullPath = this.getCurrentFullPath();
+    const initialHash = window.location.hash;
     const state = window.history.state ?? null;
     const originalUrl = this.parseUrl(
       new URL(fullPath, window.location.origin),
@@ -79,7 +82,8 @@ export class BaseRouter {
         throw res.error;
       },
       onResolved: (res) => {
-        this.applyState(res.value);
+        this.applyState({ ...res.value, hash: initialHash });
+        this.scheduleScrollToFragment(initialHash);
       },
     });
   };
@@ -104,18 +108,32 @@ export class BaseRouter {
     }
 
     const nextFullPath = this.normalizePath(nextUrl.pathname) + nextUrl.search;
+    const nextHash = nextUrl.hash;
     const currentFullPath = this.getCurrentFullPath();
     const nextState = options?.state ?? null;
-    const originalUrl = this.parseUrl(
-      new URL(nextFullPath, window.location.origin),
-    );
 
     const samePath = currentFullPath === nextFullPath;
     const sameState = window.history.state === nextState;
+    const sameHash = this.currentHash() === nextHash;
 
-    if (samePath && sameState) return;
+    if (samePath && sameState && sameHash) return;
+
+    if (samePath && sameState && !sameHash) {
+      const fullUrlWithHash = currentFullPath + nextHash;
+
+      if (options?.replace)
+        window.history.replaceState(nextState, '', fullUrlWithHash);
+      else window.history.pushState(nextState, '', fullUrlWithHash);
+
+      this.currentHash(nextHash);
+      this.scheduleScrollToFragment(nextHash);
+      return;
+    }
 
     const result = this.resolvePath(nextFullPath, nextState);
+    const originalUrl = this.parseUrl(
+      new URL(nextFullPath, window.location.origin),
+    );
 
     this.handleResolveResult(result, {
       onBlocked: () => {},
@@ -134,12 +152,13 @@ export class BaseRouter {
         throw res.error;
       },
       onResolved: (res) => {
-        const normalizedPath = res.value.pathname + res.value.search;
+        const normalizedPath = res.value.pathname + res.value.search + nextHash;
         if (options?.replace)
           window.history.replaceState(nextState, '', normalizedPath);
         else window.history.pushState(nextState, '', normalizedPath);
 
-        this.applyState(res.value);
+        this.applyState({ ...res.value, hash: nextHash });
+        this.scheduleScrollToFragment(nextHash);
       },
     });
   };
@@ -176,6 +195,7 @@ export class BaseRouter {
       searchParams: this.currentSearchParams(),
       location: {
         pathname: this.currentPathname(),
+        hash: this.currentHash(),
         search: this.currentSearch(),
         state: this.currentHistoryState(),
       },
@@ -185,11 +205,25 @@ export class BaseRouter {
 
   protected handlePopState = (): void => {
     const previousFullPath = this.currentPathname() + this.currentSearch();
+    const previousHash = this.currentHash();
     const previousState = this.currentHistoryState();
+
     const nextFullPath = this.getCurrentFullPath();
+    const nextHash = window.location.hash;
     const nextState = window.history.state ?? null;
+
+    const samePath = previousFullPath === nextFullPath;
+
+    // Fragment-only popstate
+    if (samePath) {
+      this.currentHash(nextHash);
+      this.currentHistoryState(nextState);
+      this.scheduleScrollToFragment(nextHash);
+      return;
+    }
+
     const originalUrl = this.parseUrl(
-      new URL(nextFullPath, window.location.origin),
+      new URL(nextFullPath + nextHash, window.location.origin),
     );
     const result = this.resolvePath(nextFullPath, nextState);
 
@@ -198,7 +232,7 @@ export class BaseRouter {
         window.history.replaceState(
           previousState ?? null,
           '',
-          previousFullPath,
+          previousFullPath + previousHash,
         );
       },
       onRedirect: (res) => {
@@ -206,7 +240,7 @@ export class BaseRouter {
           window.history.replaceState(
             previousState ?? null,
             '',
-            previousFullPath,
+            previousFullPath + previousHash,
           );
           return;
         }
@@ -223,7 +257,8 @@ export class BaseRouter {
         throw res.error;
       },
       onResolved: (res) => {
-        this.applyState(res.value);
+        this.applyState({ ...res.value, hash: nextHash });
+        this.scheduleScrollToFragment(nextHash);
       },
     });
   };
@@ -232,6 +267,7 @@ export class BaseRouter {
     originalUrl: {
       pathname: string;
       search: string;
+      hash: string;
       searchParams: RouteParams;
     },
     rewriteTo: string,
@@ -264,15 +300,17 @@ export class BaseRouter {
           searchParams: originalUrl.searchParams,
           component: res.value.component,
           params: res.value.params,
+          hash: originalUrl.hash,
           state,
         });
+        this.scheduleScrollToFragment(originalUrl.hash);
       },
     });
   };
 
   protected resolvePath = (fullPath: string, state: unknown): ResolveResult => {
     const url = new URL(fullPath, window.location.origin);
-    const { pathname, search, searchParams } = this.parseUrl(url);
+    const { pathname, search, searchParams, hash } = this.parseUrl(url);
 
     const globalMiddlewareResult = this.runMiddlewares(this.middlewares, {
       pathname,
@@ -300,6 +338,7 @@ export class BaseRouter {
         value: {
           pathname,
           search,
+          hash,
           component: route.component,
           params: match,
           searchParams,
@@ -313,6 +352,7 @@ export class BaseRouter {
       value: {
         pathname,
         search,
+        hash,
         component: '',
         params: {},
         searchParams,
@@ -355,11 +395,13 @@ export class BaseRouter {
     pathname: string;
     search: string;
     searchParams: RouteParams;
+    hash: string;
   } => {
     return {
       pathname: this.normalizePath(url.pathname),
       search: url.search,
       searchParams: Object.fromEntries(url.searchParams.entries()),
+      hash: url.hash,
     };
   };
 
@@ -374,10 +416,32 @@ export class BaseRouter {
   protected applyState = (nextState: ResolvedRouteState): void => {
     this.currentPathname(nextState.pathname);
     this.currentSearch(nextState.search);
+    this.currentHash(nextState.hash);
     this.currentComponent(nextState.component);
     this.currentParams(nextState.params);
     this.currentSearchParams(nextState.searchParams);
     this.currentHistoryState(nextState.state);
+  };
+
+  protected scheduleScrollToFragment = (hash: string): void => {
+    if (!hash) return;
+    requestAnimationFrame(() => this.scrollToFragment(hash));
+  };
+
+  protected scrollToFragment = (hash: string): void => {
+    const id = hash.startsWith('#') ? hash.slice(1) : hash;
+    if (!id) return;
+
+    if (id === 'top') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const el =
+      document.getElementById(id) ??
+      document.querySelector<HTMLElement>(`[name="${id}"]`);
+
+    el?.scrollIntoView({ behavior: 'smooth' });
   };
 
   protected runMiddlewares = (
