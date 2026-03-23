@@ -1,24 +1,17 @@
 import { ko } from '@/shared/lib/ko';
 import type {
   AfterNavigateHook,
-  BlockedResult,
   BuildPathSearch,
-  ErrorResult,
   NavigateExternalOptions,
   NavigateOptions,
   NavigationBlockedHook,
   NavigationErrorHook,
   NavigationLocation,
-  RedirectResult,
-  ResolvedResult,
   ResolvedRouteInfo,
   ResolvedRouteState,
   ResolveResult,
-  RewriteResult,
   RouteConfig,
   RouteMiddleware,
-  RouteMiddlewareContext,
-  RouteMiddlewareResult,
   RouteParams,
   RouterOptions,
   RouterSnapshot,
@@ -31,20 +24,22 @@ import {
   addBase,
   applyQueryParamConfig,
   applyScrollTarget,
+  buildPathByRoute,
   defaultScrollBehavior,
   generateHistoryKey,
   getCurrentFullPath,
-  getWildcardParamName,
-  isWildcardSegment,
+  handleResolveResult,
   matchRoute,
   normalizeBase,
   normalizeFullPath,
+  normalizeInputPath,
   normalizePath,
   parseUrl,
   rankRoutes,
   readHistoryState,
   resolveComparator,
   ResolveResultType,
+  runMiddlewares,
   scheduleScrollToFragment,
   stripBase,
   validateParams,
@@ -153,7 +148,7 @@ export class BaseRouter<
     );
     const result = this.resolvePath(fullPath, userState);
 
-    this.handleResolveResult(result, {
+    handleResolveResult(result, {
       onBlocked: () => {
         this.notifyNavigationBlocked({
           pathname: originalUrl.pathname,
@@ -246,22 +241,7 @@ export class BaseRouter<
     if (samePath && sameState && !sameHash) {
       const fullUrlWithHash = addBase(currentFullPath, this.base) + nextHash;
 
-      if (options?.replace) {
-        window.history.replaceState(
-          wrapState(nextState, this.currentHistoryKey),
-          '',
-          fullUrlWithHash,
-        );
-      } else {
-        this.saveCurrentScrollPosition();
-        const newKey = generateHistoryKey();
-        this.currentHistoryKey = newKey;
-        window.history.pushState(
-          wrapState(nextState, newKey),
-          '',
-          fullUrlWithHash,
-        );
-      }
+      this.pushOrReplace(fullUrlWithHash, nextState, options?.replace);
 
       this.currentHash(nextHash);
       this.currentHistoryState(nextState);
@@ -275,7 +255,7 @@ export class BaseRouter<
       new URL(nextFullPath + nextHash, window.location.origin),
     );
 
-    this.handleResolveResult(result, {
+    handleResolveResult(result, {
       onBlocked: () => {
         this.notifyNavigationBlocked({
           pathname: originalUrl.pathname,
@@ -308,22 +288,7 @@ export class BaseRouter<
         const normalizedPath =
           addBase(res.value.pathname + res.value.search, this.base) + nextHash;
 
-        if (options?.replace) {
-          window.history.replaceState(
-            wrapState(nextState, this.currentHistoryKey),
-            '',
-            normalizedPath,
-          );
-        } else {
-          this.saveCurrentScrollPosition();
-          const newKey = generateHistoryKey();
-          this.currentHistoryKey = newKey;
-          window.history.pushState(
-            wrapState(nextState, newKey),
-            '',
-            normalizedPath,
-          );
-        }
+        this.pushOrReplace(normalizedPath, nextState, options?.replace);
 
         const nextRouteState = { ...res.value, hash: nextHash };
         this.applyState(nextRouteState);
@@ -331,6 +296,25 @@ export class BaseRouter<
         this.handleScroll(nextRouteState, null);
       },
     });
+  };
+
+  protected pushOrReplace = (
+    path: string,
+    state: unknown,
+    replace?: boolean,
+  ): void => {
+    if (replace) {
+      window.history.replaceState(
+        wrapState(state, this.currentHistoryKey),
+        '',
+        path,
+      );
+    } else {
+      this.saveCurrentScrollPosition();
+      const key = generateHistoryKey();
+      this.currentHistoryKey = key;
+      window.history.pushState(wrapState(state, key), '', path);
+    }
   };
 
   public getSnapshot = (): RouterSnapshot<TMeta> => {
@@ -429,13 +413,13 @@ export class BaseRouter<
     );
     const result = this.resolvePath(nextFullPath, nextUserState);
 
-    this.handleResolveResult(result, {
+    handleResolveResult(result, {
       onBlocked: () => {
-        this.currentHistoryKey = previousHistoryKey;
-        window.history.replaceState(
-          wrapState(previousState, previousHistoryKey),
-          '',
-          addBase(previousFullPath, this.base) + previousHash,
+        this.rollbackHistory(
+          previousHistoryKey,
+          previousState,
+          previousFullPath,
+          previousHash,
         );
         this.notifyNavigationBlocked({
           pathname: originalUrl.pathname,
@@ -446,11 +430,11 @@ export class BaseRouter<
       },
       onRedirect: (res) => {
         if (normalizeFullPath(res.to) === nextFullPath) {
-          this.currentHistoryKey = previousHistoryKey;
-          window.history.replaceState(
-            wrapState(previousState, previousHistoryKey),
-            '',
-            addBase(previousFullPath, this.base) + previousHash,
+          this.rollbackHistory(
+            previousHistoryKey,
+            previousState,
+            previousFullPath,
+            previousHash,
           );
           return;
         }
@@ -481,6 +465,20 @@ export class BaseRouter<
     });
   };
 
+  protected rollbackHistory(
+    key: string,
+    state: unknown,
+    fullPath: string,
+    hash: string,
+  ): void {
+    this.currentHistoryKey = key;
+    window.history.replaceState(
+      wrapState(state, key),
+      '',
+      addBase(fullPath, this.base) + hash,
+    );
+  }
+
   protected resolveRewrite = (
     originalUrl: {
       pathname: string;
@@ -500,7 +498,7 @@ export class BaseRouter<
 
     const result = this.resolvePath(rewriteTo, state);
 
-    this.handleResolveResult(result, {
+    handleResolveResult(result, {
       onBlocked: () => {
         this.notifyNavigationBlocked({
           pathname: originalUrl.pathname,
@@ -557,7 +555,7 @@ export class BaseRouter<
     const url = new URL(fullPath, window.location.origin);
     const { pathname, search, searchParams, hash } = parseUrl(url);
 
-    const globalMiddlewareResult = this.runMiddlewares(this.middlewares, {
+    const globalMiddlewareResult = runMiddlewares(this.middlewares, {
       pathname,
       search,
       state,
@@ -582,7 +580,7 @@ export class BaseRouter<
       );
       if (!queryResult.valid) continue;
 
-      const middlewareResult = this.runMiddlewares(route.middlewares ?? [], {
+      const middlewareResult = runMiddlewares(route.middlewares ?? [], {
         pathname,
         search,
         state,
@@ -661,53 +659,6 @@ export class BaseRouter<
     this.currentPattern(nextState.pattern);
   };
 
-  protected runMiddlewares = (
-    middlewares: RouteMiddleware<TMeta>[],
-    context: RouteMiddlewareContext<TMeta>,
-  ): RouteMiddlewareResult<TMeta> => {
-    for (const middleware of middlewares) {
-      const result = middleware(context);
-      if (result) return result;
-    }
-  };
-
-  protected handleResolveResult = (
-    result: ResolveResult<TMeta>,
-    options: {
-      onBlocked: (result: BlockedResult) => void;
-      onError: (result: ErrorResult) => void;
-      onRedirect: (result: RedirectResult) => void;
-      onRewrite: (result: RewriteResult) => void;
-      onResolved: (result: ResolvedResult<TMeta>) => void;
-    },
-  ): void => {
-    switch (result.type) {
-      case ResolveResultType.Error: {
-        options.onError(result);
-        return;
-      }
-      case ResolveResultType.Blocked: {
-        options.onBlocked(result);
-        return;
-      }
-      case ResolveResultType.Rewrite: {
-        options.onRewrite(result);
-        return;
-      }
-      case ResolveResultType.Redirect: {
-        options.onRedirect(result);
-        return;
-      }
-      case ResolveResultType.Resolved: {
-        options.onResolved(result);
-        return;
-      }
-      default: {
-        return;
-      }
-    }
-  };
-
   protected saveCurrentScrollPosition = (): void => {
     if (!this.currentHistoryKey) return;
     this.scrollPositions.set(this.currentHistoryKey, {
@@ -756,10 +707,11 @@ export class BaseRouter<
   };
 
   protected buildUrlWithSearch = (search: URLSearchParams): string => {
-    const path =
+    return (
       this.currentPathname() +
-      (search.toString() ? `?${search.toString()}` : '');
-    return path + this.currentHash();
+      (search.toString() ? `?${search.toString()}` : '') +
+      this.currentHash()
+    );
   };
 
   public getSearchParam = (key: string): string | null => {
@@ -774,17 +726,24 @@ export class BaseRouter<
     return this.getCurrentSearchInstance().has(key);
   };
 
+  protected mutateSearchParam = (
+    mutate: (s: URLSearchParams) => void,
+    options?: NavigateOptions,
+  ) => {
+    const search = this.getCurrentSearchInstance();
+    mutate(search);
+    this.navigate(this.buildUrlWithSearch(search), {
+      replace: options?.replace ?? true,
+      state: options?.state ?? this.currentHistoryState(),
+    });
+  };
+
   public setSearchParam = (
     key: string,
     value: string,
     options?: NavigateOptions,
   ): void => {
-    const search = this.getCurrentSearchInstance();
-    search.set(key, value);
-    this.navigate(this.buildUrlWithSearch(search), {
-      replace: options?.replace ?? true,
-      state: options?.state ?? this.currentHistoryState(),
-    });
+    this.mutateSearchParam((s) => s.set(key, value), options);
   };
 
   public appendSearchParam = (
@@ -792,12 +751,7 @@ export class BaseRouter<
     value: string,
     options?: NavigateOptions,
   ): void => {
-    const search = this.getCurrentSearchInstance();
-    search.append(key, value);
-    this.navigate(this.buildUrlWithSearch(search), {
-      replace: options?.replace ?? true,
-      state: options?.state ?? this.currentHistoryState(),
-    });
+    this.mutateSearchParam((s) => s.append(key, value), options);
   };
 
   public deleteSearchParam = (
@@ -805,41 +759,33 @@ export class BaseRouter<
     value?: string,
     options?: NavigateOptions,
   ): void => {
-    const search = this.getCurrentSearchInstance();
-
-    if (value !== undefined) {
-      const remaining = search.getAll(key).filter((v) => v !== value);
-      search.delete(key);
-      remaining.forEach((v) => search.append(key, v));
-    } else search.delete(key);
-
-    this.navigate(this.buildUrlWithSearch(search), {
-      replace: options?.replace ?? true,
-      state: options?.state ?? this.currentHistoryState(),
-    });
+    this.mutateSearchParam((s) => {
+      if (value !== undefined) {
+        const remaining = s.getAll(key).filter((v) => v !== value);
+        s.delete(key);
+        remaining.forEach((v) => s.append(key, v));
+      } else {
+        s.delete(key);
+      }
+    }, options);
   };
 
   public patchSearchParams = (
     patch: SearchParamsPatch,
     options?: NavigateOptions,
   ): void => {
-    const search = this.getCurrentSearchInstance();
-
-    Object.entries(patch).forEach(([key, value]) => {
-      if (value === null || value === undefined) {
-        search.delete(key);
-      } else if (Array.isArray(value)) {
-        search.delete(key);
-        value.forEach((v) => search.append(key, v));
-      } else {
-        search.set(key, value);
-      }
-    });
-
-    this.navigate(this.buildUrlWithSearch(search), {
-      replace: options?.replace ?? true,
-      state: options?.state ?? this.currentHistoryState(),
-    });
+    this.mutateSearchParam((s) => {
+      Object.entries(patch).forEach(([key, value]) => {
+        if (value === null || value === undefined) {
+          s.delete(key);
+        } else if (Array.isArray(value)) {
+          s.delete(key);
+          value.forEach((v) => s.append(key, v));
+        } else {
+          s.set(key, value);
+        }
+      });
+    }, options);
   };
 
   public replaceAllSearchParams = (
@@ -870,60 +816,7 @@ export class BaseRouter<
     if (!route)
       throw new Error(`BaseRouter.buildPath: route "${name}" not found`);
 
-    const segments = normalizePath(route.pattern).split('/').filter(Boolean);
-    const resultSegments: string[] = [];
-
-    for (const segment of segments) {
-      if (isWildcardSegment(segment)) {
-        const paramName = getWildcardParamName(segment);
-        const value = params?.[paramName];
-        if (value !== undefined) resultSegments.push(String(value));
-
-        break;
-      }
-
-      if (segment.startsWith(':')) {
-        const isOptional = segment.endsWith('?');
-        const paramName = segment.slice(1, isOptional ? -1 : undefined);
-        const value = params?.[paramName];
-
-        if (value !== undefined)
-          resultSegments.push(encodeURIComponent(String(value)));
-        else if (!isOptional)
-          throw new Error(
-            `BaseRouter.buildPath: missing required param "${paramName}" for route "${name}"`,
-          );
-
-        continue;
-      }
-
-      resultSegments.push(segment);
-    }
-
-    const pathname = '/' + resultSegments.join('/');
-    const hashStr = hash ? (hash.startsWith('#') ? hash : `#${hash}`) : '';
-
-    if (!search) return `${pathname}${hashStr}`;
-
-    const sp =
-      search instanceof URLSearchParams
-        ? search
-        : (() => {
-            const instance = new URLSearchParams();
-            Object.entries(search).forEach(([key, value]) => {
-              if (Array.isArray(value)) {
-                value.forEach((v) => instance.append(key, v));
-              } else {
-                instance.set(key, value);
-              }
-            });
-            return instance;
-          })();
-
-    const searchStr = sp.toString();
-    return searchStr
-      ? `${pathname}?${searchStr}${hashStr}`
-      : `${pathname}${hashStr}`;
+    return buildPathByRoute(route, params, search, hash);
   };
 
   public navigateByName = (
@@ -933,8 +826,7 @@ export class BaseRouter<
     hash?: string,
     options?: NavigateOptions,
   ): void => {
-    const path = this.buildPath(name, params, search, hash);
-    this.navigate(path, options);
+    this.navigate(this.buildPath(name, params, search, hash), options);
   };
 
   protected notifyAfterNavigate = (to: ResolvedRouteState<TMeta>): void => {
@@ -953,10 +845,7 @@ export class BaseRouter<
   };
 
   public isActive = (path: string): boolean => {
-    const normalized = normalizePath(
-      new URL(path.startsWith('/') ? path : `/${path}`, window.location.origin)
-        .pathname,
-    );
+    const normalized = normalizeInputPath(path);
     const current = this.currentPathname();
     if (this.caseSensitive)
       return current === normalized || current.startsWith(normalized + '/');
@@ -967,10 +856,7 @@ export class BaseRouter<
   };
 
   public isExact = (path: string): boolean => {
-    const normalized = normalizePath(
-      new URL(path.startsWith('/') ? path : `/${path}`, window.location.origin)
-        .pathname,
-    );
+    const normalized = normalizeInputPath(path);
     const current = this.currentPathname();
     return this.caseSensitive
       ? current === normalized
@@ -1011,7 +897,7 @@ export class BaseRouter<
     const { pathname, searchParams } = parseUrl(url);
 
     if (options?.runMiddlewares) {
-      const globalResult = this.runMiddlewares(this.middlewares, {
+      const globalResult = runMiddlewares(this.middlewares, {
         pathname,
         search: url.search,
         state: null,
@@ -1035,7 +921,7 @@ export class BaseRouter<
       if (!queryResult.valid) continue;
 
       if (options?.runMiddlewares && route.middlewares?.length) {
-        const routeResult = this.runMiddlewares(route.middlewares, {
+        const routeResult = runMiddlewares(route.middlewares, {
           pathname,
           search: url.search,
           state: null,

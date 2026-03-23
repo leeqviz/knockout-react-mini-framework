@@ -7,6 +7,7 @@ export {
 export { generateHistoryKey, readHistoryState, wrapState } from './history';
 export {
   applyQueryParamConfig,
+  buildPathByRoute,
   getRouteScore,
   getWildcardParamName,
   isWildcardSegment,
@@ -15,6 +16,7 @@ export {
   rankRoutes,
   validateParams,
 } from './matcher';
+export { handleResolveResult, runMiddlewares } from './middleware';
 export { ResolveResultType } from './route';
 export {
   applyScrollTarget,
@@ -27,6 +29,7 @@ export {
   getCurrentFullPath,
   normalizeBase,
   normalizeFullPath,
+  normalizeInputPath,
   normalizePath,
   parseUrl,
   stripBase,

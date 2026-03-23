@@ -56,3 +56,10 @@ export function normalizeBase(base: string): string {
   if (!base || base === '/') return '';
   return base.endsWith('/') ? base.slice(0, -1) : base;
 }
+
+export function normalizeInputPath(path: string): string {
+  return normalizePath(
+    new URL(path.startsWith('/') ? path : `/${path}`, window.location.origin)
+      .pathname,
+  );
+}

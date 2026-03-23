@@ -1,4 +1,5 @@
 import type {
+  BuildPathSearch,
   QueryParamConfig,
   RouteConfig,
   RouteParams,
@@ -173,4 +174,68 @@ export function rankRoutes<
       return right.score - left.score || left.index - right.index;
     })
     .map((item) => item.route);
+}
+
+export function buildPathByRoute<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+>(
+  route: RouteConfig<TMeta>,
+  params?: RouteParams,
+  search?: BuildPathSearch,
+  hash?: string,
+): string {
+  const segments = normalizePath(route.pattern).split('/').filter(Boolean);
+  const resultSegments: string[] = [];
+
+  for (const segment of segments) {
+    if (isWildcardSegment(segment)) {
+      const paramName = getWildcardParamName(segment);
+      const value = params?.[paramName];
+      if (value !== undefined) resultSegments.push(String(value));
+
+      break;
+    }
+
+    if (segment.startsWith(':')) {
+      const isOptional = segment.endsWith('?');
+      const paramName = segment.slice(1, isOptional ? -1 : undefined);
+      const value = params?.[paramName];
+
+      if (value !== undefined)
+        resultSegments.push(encodeURIComponent(String(value)));
+      else if (!isOptional)
+        throw new Error(
+          `BaseRouter.buildPath: missing required param "${paramName}" for route "${name}"`,
+        );
+
+      continue;
+    }
+
+    resultSegments.push(segment);
+  }
+
+  const pathname = '/' + resultSegments.join('/');
+  const hashStr = hash ? (hash.startsWith('#') ? hash : `#${hash}`) : '';
+
+  if (!search) return `${pathname}${hashStr}`;
+
+  const sp =
+    search instanceof URLSearchParams
+      ? search
+      : (() => {
+          const instance = new URLSearchParams();
+          Object.entries(search).forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+              value.forEach((v) => instance.append(key, v));
+            } else {
+              instance.set(key, value);
+            }
+          });
+          return instance;
+        })();
+
+  const searchStr = sp.toString();
+  return searchStr
+    ? `${pathname}?${searchStr}${hashStr}`
+    : `${pathname}${hashStr}`;
 }
