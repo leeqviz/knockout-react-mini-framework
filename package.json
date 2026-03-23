@@ -32,7 +32,7 @@
     "@testing-library/react": "^16.3.2",
     "@types/jquery": "^4.0.0",
     "@types/jqueryui": "^1.12.24",
-    "@types/knockout": "^3.4.78",
+    "@types/knockout": "^3.4.79",
     "@types/node": "^22.19.15",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
