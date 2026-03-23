@@ -32,5 +32,6 @@ export {
   normalizeInputPath,
   normalizePath,
   parseUrl,
+  resolveTo,
   stripBase,
 } from './url';

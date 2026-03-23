@@ -205,7 +205,7 @@ export function buildPathByRoute<
         resultSegments.push(encodeURIComponent(String(value)));
       else if (!isOptional)
         throw new Error(
-          `BaseRouter.buildPath: missing required param "${paramName}" for route "${name}"`,
+          `missing required param "${paramName}" for route "${name}"`,
         );
 
       continue;

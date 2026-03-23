@@ -39,6 +39,7 @@ import {
   readHistoryState,
   resolveComparator,
   ResolveResultType,
+  resolveTo,
   runMiddlewares,
   scheduleScrollToFragment,
   stripBase,
@@ -203,7 +204,11 @@ export class BaseRouter<
     path: string,
     options?: NavigateOptions | undefined,
   ): void => {
-    const nextUrl = this.resolveTo(path);
+    const nextUrl = resolveTo(
+      path,
+      this.currentPathname(),
+      this.currentSearch(),
+    );
 
     if (nextUrl.origin !== window.location.origin)
       throw new Error(
@@ -623,28 +628,6 @@ export class BaseRouter<
     };
   };
 
-  protected resolveTo = (path: string): URL => {
-    if (!path) throw new Error('BaseRouter.navigate: empty path');
-
-    const origin = window.location.origin;
-    const currentPathname = this.currentPathname();
-    const currentSearch = this.currentSearch();
-
-    if (path.startsWith('/')) return new URL(path, origin);
-
-    if (path.startsWith('?'))
-      return new URL(`${currentPathname}${path}`, origin);
-
-    if (path.startsWith('#'))
-      return new URL(`${currentPathname}${currentSearch}${path}`, origin);
-
-    const basePath = currentPathname.endsWith('/')
-      ? currentPathname
-      : `${currentPathname}/`;
-
-    return new URL(path, `${origin}${basePath}`);
-  };
-
   protected applyState = (nextState: ResolvedRouteState<TMeta>): void => {
     this.previousRouteState = this.captureCurrentRouteState();
     this.currentPathname(nextState.pathname);
@@ -889,7 +872,7 @@ export class BaseRouter<
   ): ResolvedRouteInfo<TMeta> | null => {
     let url: URL;
     try {
-      url = this.resolveTo(path);
+      url = resolveTo(path, this.currentPathname(), this.currentSearch());
     } catch {
       return null;
     }
@@ -975,7 +958,7 @@ export class BaseRouter<
   };
 
   public createHref = (path: string): string => {
-    const url = this.resolveTo(path);
+    const url = resolveTo(path, this.currentPathname(), this.currentSearch());
     return (
       addBase(normalizePath(url.pathname), this.base) + url.search + url.hash
     );

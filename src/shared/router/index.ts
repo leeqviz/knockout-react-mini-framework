@@ -61,6 +61,7 @@ export {
   readHistoryState,
   resolveComparator,
   ResolveResultType,
+  resolveTo,
   runMiddlewares,
   scheduleScrollToFragment,
   scrollToFragment,

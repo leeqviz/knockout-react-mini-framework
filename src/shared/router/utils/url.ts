@@ -63,3 +63,26 @@ export function normalizeInputPath(path: string): string {
       .pathname,
   );
 }
+
+export function resolveTo(
+  path: string,
+  currentPathname: string,
+  currentSearch: string,
+): URL {
+  if (!path) throw new Error('path is empty');
+
+  const origin = window.location.origin;
+
+  if (path.startsWith('/')) return new URL(path, origin);
+
+  if (path.startsWith('?')) return new URL(`${currentPathname}${path}`, origin);
+
+  if (path.startsWith('#'))
+    return new URL(`${currentPathname}${currentSearch}${path}`, origin);
+
+  const basePath = currentPathname.endsWith('/')
+    ? currentPathname
+    : `${currentPathname}/`;
+
+  return new URL(path, `${origin}${basePath}`);
+}
