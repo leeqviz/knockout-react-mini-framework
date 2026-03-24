@@ -28,6 +28,8 @@ export type {
   RouterSnapshot,
   RouteSearchParams,
   RouteState,
+  ScrollBehaviorMeta,
+  ScrollBehaviorOptions,
   ScrollBehaviorStrategy,
   StateCompareStrategy,
 } from './types';

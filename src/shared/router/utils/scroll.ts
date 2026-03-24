@@ -1,39 +1,44 @@
-import type { ScrollBehaviorStrategy } from '../types';
+import type { ScrollBehaviorMeta, ScrollBehaviorOptions } from '../types';
 
-export function scrollToTarget(target: ScrollToOptions | null): void {
-  if (!target) return;
+export function scrollToTarget(
+  options: ScrollToOptions | boolean | null,
+): void {
+  if (!options || typeof options === 'boolean') return;
   requestAnimationFrame(() => {
-    window.scrollTo(target);
+    window.scrollTo(options);
   });
 }
 
 export function scrollToFragment(
   hash: string,
-  options?: ScrollIntoViewOptions,
+  options: ScrollIntoViewOptions | boolean | null,
 ): void {
   if (!hash) return;
   requestAnimationFrame(() => {
     const id = hash.startsWith('#') ? hash.slice(1) : hash;
     if (!id) return;
 
-    if (id === 'top') {
-      window.scrollTo({ top: 0, behavior: options?.behavior || 'auto' });
-      return;
+    if (id === 'top')
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior:
+          typeof options === 'boolean' ? 'auto' : options?.behavior || 'auto',
+      });
+    else {
+      const el =
+        document.getElementById(id) ??
+        document.querySelector<HTMLElement>(`[name="${id}"]`);
+
+      if (!el) return;
+      el.scrollIntoView(options ?? { behavior: 'auto' });
     }
-
-    const el =
-      document.getElementById(id) ??
-      document.querySelector<HTMLElement>(`[name="${id}"]`);
-
-    el?.scrollIntoView({ ...options, behavior: options?.behavior || 'auto' });
   });
 }
 
-export const defaultScrollBehavior: ScrollBehaviorStrategy = (
-  _to,
-  _from,
-  options,
-) => {
-  if (options) return options;
+export function defaultScrollBehavior<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+>(meta?: ScrollBehaviorMeta<TMeta> | undefined): ScrollBehaviorOptions | null {
+  if (meta?.options) return meta.options;
   return { top: 0, left: 0, behavior: 'smooth' };
-};
+}

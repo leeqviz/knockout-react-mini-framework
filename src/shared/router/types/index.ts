@@ -28,6 +28,8 @@ export type {
   ResolvedRoute,
   RouterOptions,
   RouterSnapshot,
+  ScrollBehaviorMeta,
+  ScrollBehaviorOptions,
   ScrollBehaviorStrategy,
   StateCompareStrategy,
 } from './router';

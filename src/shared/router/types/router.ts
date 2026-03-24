@@ -12,13 +12,24 @@ export type StateCompareStrategy =
   | 'deep' // recursive Object.is
   | ((a: unknown, b: unknown) => boolean); // custom
 
+export type ScrollBehaviorOptions =
+  | ScrollToOptions
+  | ScrollIntoViewOptions
+  | boolean;
+
+export interface ScrollBehaviorMeta<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> {
+  to: RouteState<TMeta> | null;
+  from: RouteState<TMeta> | null;
+  options: ScrollBehaviorOptions | null;
+}
+
 export type ScrollBehaviorStrategy<
   TMeta extends Record<string, unknown> = Record<string, unknown>,
 > = (
-  to: RouteState<TMeta>,
-  from: RouteState<TMeta> | null,
-  position: ScrollToOptions | null,
-) => ScrollToOptions | null;
+  meta?: ScrollBehaviorMeta<TMeta> | undefined,
+) => ScrollBehaviorOptions | null;
 
 export interface NavigationLocation {
   pathname: string;

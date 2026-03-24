@@ -6,6 +6,7 @@ import type {
   NavigationBlockedHook,
   NavigationErrorHook,
   NavigationLocation,
+  ParsedURL,
   ResolvedRoute,
   RouteConfig,
   RouteMiddleware,
@@ -15,7 +16,8 @@ import type {
   RouterSnapshot,
   RouteSearchParams,
   RouteState,
-  ScrollBehaviorStrategy,
+  ScrollBehaviorMeta,
+  ScrollBehaviorOptions,
 } from './types';
 import {
   addBase,
@@ -52,7 +54,9 @@ export class BaseRouter<
   protected readonly base: string;
   protected readonly caseSensitive: boolean;
   protected readonly middlewares: RouteMiddleware<TMeta>[];
-  protected readonly scrollBehavior: ScrollBehaviorStrategy<TMeta>;
+  protected readonly scrollBehavior: (
+    meta?: ScrollBehaviorMeta<TMeta> | undefined,
+  ) => ScrollBehaviorOptions | null;
   protected readonly stateCompare: (a: unknown, b: unknown) => boolean;
   protected readonly afterNavigateHook: AfterNavigateHook<TMeta> | undefined;
   protected readonly onNavigationBlockedHook:
@@ -63,7 +67,7 @@ export class BaseRouter<
     | ((to: NavigationLocation, from: RouteState<TMeta> | null) => boolean)
     | undefined;
   protected readonly enableBeforeUnload: boolean;
-  protected scrollPositions = new Map<string, ScrollToOptions>();
+  protected scrollOptions = new Map<string, ScrollBehaviorOptions | null>();
   protected currentHistoryKey: string = '';
   protected previousRouteState: RouteState<TMeta> | null = null;
   protected isStarted: boolean = false;
@@ -175,7 +179,11 @@ export class BaseRouter<
         const nextState = { ...res.value, hash: initialHash };
         this.applyState(nextState);
         this.notifyAfterNavigate(nextState);
-        this.handleScroll(nextState, null);
+        this.handleScroll({
+          to: nextState,
+          from: this.previousRouteState,
+          options: null,
+        });
       },
     });
   };
@@ -244,7 +252,7 @@ export class BaseRouter<
       this.currentHash(nextHash);
       this.currentHistoryState(nextState);
       this.notifyAfterNavigate(this.captureCurrentRouteState());
-      scrollToFragment(nextHash);
+      scrollToFragment(nextHash, null);
       return;
     }
 
@@ -291,7 +299,11 @@ export class BaseRouter<
         const nextRouteState = { ...res.value, hash: nextHash };
         this.applyState(nextRouteState);
         this.notifyAfterNavigate(nextRouteState);
-        this.handleScroll(nextRouteState, null);
+        this.handleScroll({
+          to: nextRouteState,
+          from: this.previousRouteState,
+          options: null,
+        });
       },
     });
   };
@@ -369,7 +381,7 @@ export class BaseRouter<
       window.history.state,
     );
 
-    const savedPosition = this.scrollPositions.get(nextKey) ?? null;
+    const savedScrollOption = this.scrollOptions.get(nextKey) ?? null;
     this.currentHistoryKey = nextKey;
 
     const samePath = previousFullPath === nextFullPath;
@@ -400,7 +412,7 @@ export class BaseRouter<
       this.currentHash(nextHash);
       this.currentHistoryState(nextUserState);
       this.notifyAfterNavigate(this.captureCurrentRouteState());
-      scrollToFragment(nextHash);
+      scrollToFragment(nextHash, null);
       return;
     }
 
@@ -441,7 +453,12 @@ export class BaseRouter<
         });
       },
       onRewrite: (res) => {
-        this.resolveRewrite(originalUrl, res.to, nextUserState, savedPosition);
+        this.resolveRewrite(
+          originalUrl,
+          res.to,
+          nextUserState,
+          savedScrollOption,
+        );
       },
       onError: (res) => {
         const handled = this.notifyNavigationError(res.error, {
@@ -456,7 +473,11 @@ export class BaseRouter<
         const nextRouteState = { ...res.value, hash: nextHash };
         this.applyState(nextRouteState);
         this.notifyAfterNavigate(nextRouteState);
-        this.handleScroll(nextRouteState, savedPosition);
+        this.handleScroll({
+          to: nextRouteState,
+          from: this.previousRouteState,
+          options: savedScrollOption,
+        });
       },
     });
   };
@@ -476,15 +497,10 @@ export class BaseRouter<
   }
 
   protected resolveRewrite = (
-    originalUrl: {
-      pathname: string;
-      search: string;
-      hash: string;
-      searchParams: RouteSearchParams;
-    },
+    originalUrl: ParsedURL,
     rewriteTo: string,
     state: unknown,
-    savedPosition: ScrollToOptions | null = null,
+    scrollOptions: ScrollBehaviorOptions | null = null,
     depth: number = 0,
   ): void => {
     if (depth > 10)
@@ -509,7 +525,7 @@ export class BaseRouter<
           originalUrl,
           res.to,
           state,
-          savedPosition,
+          scrollOptions,
           depth + 1,
         );
       },
@@ -537,7 +553,11 @@ export class BaseRouter<
         };
         this.applyState(nextRouteState);
         this.notifyAfterNavigate(nextRouteState);
-        this.handleScroll(nextRouteState, savedPosition);
+        this.handleScroll({
+          to: nextRouteState,
+          from: this.previousRouteState,
+          options: scrollOptions,
+        });
       },
     });
   };
@@ -633,15 +653,15 @@ export class BaseRouter<
 
   protected saveCurrentScrollPosition = (): void => {
     if (!this.currentHistoryKey) return;
-    this.scrollPositions.set(this.currentHistoryKey, {
+    this.scrollOptions.set(this.currentHistoryKey, {
       top: window.scrollX,
       left: window.scrollY,
       behavior: 'smooth',
     });
 
-    if (this.scrollPositions.size > 50) {
-      const firstKey = this.scrollPositions.keys().next().value;
-      if (firstKey) this.scrollPositions.delete(firstKey);
+    if (this.scrollOptions.size > 50) {
+      const firstKey = this.scrollOptions.keys().next().value;
+      if (firstKey) this.scrollOptions.delete(firstKey);
     }
   };
 
@@ -658,16 +678,9 @@ export class BaseRouter<
     pattern: this.currentPattern(),
   });
 
-  protected handleScroll = (
-    to: RouteState<TMeta>,
-    position: ScrollToOptions | null,
-  ): void => {
-    if (to.hash) {
-      scrollToFragment(to.hash);
-      return;
-    }
-
-    scrollToTarget(this.scrollBehavior(to, this.previousRouteState, position));
+  protected handleScroll = (meta: ScrollBehaviorMeta<TMeta>): void => {
+    if (meta.to?.hash) scrollToFragment(meta.to.hash, meta.options);
+    else scrollToTarget(this.scrollBehavior(meta));
   };
 
   protected getCurrentSearchInstance = (): URLSearchParams => {
