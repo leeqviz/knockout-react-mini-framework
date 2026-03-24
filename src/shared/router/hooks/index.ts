@@ -1,9 +1,14 @@
+export { useBeforeUnload } from './use-before-unload';
+export { useBlocker } from './use-blocker';
 export { useHref } from './use-href';
 export { useLinkClickHandler } from './use-link-click-handler';
 export { useLocation } from './use-location';
 export { useMatch } from './use-match';
 export { useNavigate } from './use-navigate';
+export { useNavigationType } from './use-navigation-type';
 export { useParams } from './use-params';
+export { usePrompt } from './use-prompt';
+export { useResolvedPath } from './use-resolved-path';
 export { useRoute } from './use-route';
 export { useRouter } from './use-router';
 export { useRouterUtils } from './use-router-utils';

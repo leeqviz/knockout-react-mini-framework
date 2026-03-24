@@ -20,6 +20,8 @@ export type {
 export type {
   AfterNavigateHook,
   BeforeNavigateHook,
+  BlockerFunction,
+  BlockerState,
   LinkRenderState,
   MetaTagsResolver,
   NavigateExternalOptions,
@@ -29,6 +31,7 @@ export type {
   NavigationLocation,
   ParsedURL,
   ResolvedRoute,
+  RouterNavigationType,
   RouterOptions,
   RouterSnapshot,
   ScrollBehaviorMeta,

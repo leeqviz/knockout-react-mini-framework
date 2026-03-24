@@ -33,6 +33,12 @@ export const mockedRouterContextValue: RouterSnapshot = {
   getSearchParam: vi.fn(),
   getAllSearchParams: vi.fn(),
   hasSearchParam: vi.fn(),
+  navigationType: 'push',
+  blockerState: 'unblocked',
+  blockedTo: null,
+  setBlocker: vi.fn(),
+  proceedBlocked: vi.fn(),
+  resetBlocked: vi.fn(),
 };
 
 export function renderWithRouterContext(

@@ -39,6 +39,13 @@ export type MetaTagsResolver<
   TMeta extends Record<string, unknown> = Record<string, unknown>,
 > = (state: RouteState<TMeta>) => Record<string, string> | undefined;
 
+export type RouterNavigationType = 'push' | 'pop' | 'replace';
+export type BlockerState = 'unblocked' | 'blocked' | 'proceeding';
+export type BlockerFunction<TMeta extends Record<string, unknown>> = (
+  to: NavigationLocation,
+  from: RouteState<TMeta> | null,
+) => boolean;
+
 export interface NavigationLocation {
   pathname: string;
   search: string;
@@ -169,6 +176,13 @@ export interface RouterSnapshot<
     pattern?: string | undefined;
   };
   location: NavigationLocation;
+
+  navigationType: RouterNavigationType;
+  blockerState: BlockerState;
+  blockedTo: NavigationLocation | null;
+  setBlocker: (fn: BlockerFunction<TMeta> | null) => void;
+  proceedBlocked: () => void;
+  resetBlocked: () => void;
 }
 
 export interface ParsedURL {
