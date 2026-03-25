@@ -11,26 +11,29 @@
 [![Vitest](https://img.shields.io/badge/vitest-%236E9F18.svg?style=flat&logo=vitest&logoColor=white)](https://vitest.dev/)
 [![ESLint](https://img.shields.io/badge/eslint-%234B32C3.svg?style=flat&logo=eslint&logoColor=white)](https://eslint.org/)
 [![Prettier](https://img.shields.io/badge/prettier-%23F7B93E.svg?style=flat&logo=prettier&logoColor=black)](https://prettier.io/)
+[![Node.js](https://img.shields.io/badge/node.js-6DA55F?style=flat&logo=node.js&logoColor=white)](https://nodejs.org/en)
+[![React Testing Library](https://img.shields.io/badge/-React%20Testing%20Library-E33332?style=flat&logo=testing-library&logoColor=white)](https://testing-library.com/)
 
 ## 💡 About project
 
-A hybrid web application that exemplifies the embedding of independent React components into a framework built using Knockout.js and jQuery. New features are written in React and integrated into existing Knockout templates. React components are maximally isolated, while Knockout.js manages two-way data exchange.
+A hybrid web application that exemplifies the embedding of independent React components into a framework built using Knockout.js and jQuery. New features are written in React and integrated into existing Knockout templates as independent general React root components. React components are maximally isolated, while Knockout.js manages two-way data exchange using bindings, zustand, event bus and client-side routing with React Context.
 
 ## ⚙️ Technology stack
 
-1. **Bundler**: Vite
-2. **Language**: JavaScript, TypeScript _(Strict Mode)_
+1. **Bundler**: Vite _(v6.4+)_
+2. **Language**: JavaScript _(ESM)_, TypeScript _(v5.9+ Strict Mode)_
 3. **Infrastructure**: Knockout.js _(v3.5+)_
-4. **UI**: React _(v19+)_, jQuery _(v4+)_
-5. **Global State Manager**: Zustand
-6. **Linter**: ESLint _(v9+ Flat Config)_
-7. **Formatter**: Prettier
-8. **Testing framework**: Vitest, React Testing Library
-9. **Styling**: Tailwind CSS _(v4+)_, CSS modules
+4. **UI**: React _(v19.2+)_, ReactDOM _(v19.2+)_, jQuery _(v4.0+)_, jQueryUI _(v1.14+)_
+5. **Global State Manager**: Zustand _(v5.0+)_
+6. **Linter**: ESLint _(v9.39+ Flat Config)_
+7. **Formatter**: Prettier _(v3.8+)_
+8. **Testing framework**: Vitest _(v4.0+)_, React Testing Library _(v16.3+)_
+9. **Styling**: Tailwind CSS _(v4.2+)_, CSS modules
+10. **Server**: Node.js _(v22.19+)_
 
 ## 🧩 Architecture
 
-A custom binding mechanism is used to render React components within an application written entirely in Knockout.js. Components are automatically unmounted when the node is removed from the DOM. To ensure the app loads as quickly as possible, all React widgets can be wrapped in lazy components before passing them to Knockout. Knockout.js uses `ko.observable` to subscribe to the global Zustand state. React uses the hooks to subscribe to the global Zustand store. Synchronization between them (if needed) occurs by passing data from Zustand as props via binding.
+A custom binding mechanism is used to render React root components within an application written entirely in Knockout.js. Components are automatically unmounted when the node is removed from the DOM and renders when observable data has changed. To ensure the app loads as quickly as possible, all React widgets can be wrapped in lazy components before passing them to Knockout. Knockout.js uses `ko.observable` to subscribe to the global Zustand state and build a client-side routing mechanism. React uses the hooks to subscribe to the global Zustand store and router context.
 
 ## 📜 Development guidelines
 
@@ -79,8 +82,6 @@ A custom binding mechanism is used to render React components within an applicat
 ```
 
 ## 🔧 Installation and setup
-
-Node version must be 22+
 
 1. `git clone https://github.com/your-username/your-repo-name.git`
 2. `cd your-repo-name`
