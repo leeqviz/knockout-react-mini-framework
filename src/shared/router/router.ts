@@ -1,4 +1,4 @@
-import { ko } from '@/shared/lib/ko';
+import ko from 'knockout';
 import type {
   AfterNavigateHook,
   BeforeNavigateHook,

@@ -1,5 +1,5 @@
 import { localStorageSync, zustandSync } from '@/app/extenders';
-import { ko } from '@/shared/lib/ko';
+import ko from 'knockout';
 
 const extenders = {
   localStorageSync,

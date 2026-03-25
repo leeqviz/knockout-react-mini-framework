@@ -5,12 +5,12 @@ import {
   type AppEventPayloadMap,
 } from '@/shared/event-bus';
 import {
-  ko,
   type KnockoutObservableArrayWithDispose,
   type KnockoutObservableWithDispose,
 } from '@/shared/lib/ko';
 import { appStore, type AppState } from '@/shared/store';
 import type { Theme, User } from '@/shared/types';
+import ko from 'knockout';
 import { BaseViewModel } from './base.model';
 
 interface ComponentBindingOptions {

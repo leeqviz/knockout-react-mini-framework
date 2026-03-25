@@ -1,5 +1,5 @@
 import { AppViewModel } from '@/app/models';
-import { ko } from '@/shared/lib/ko';
+import ko from 'knockout';
 
 const bindingMap = [
   {

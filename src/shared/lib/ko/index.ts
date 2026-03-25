@@ -1,4 +1,3 @@
-export { ko } from './global';
 export type {
   KnockoutComponentMeta,
   KnockoutObservableArrayWithDispose,

@@ -1,5 +1,5 @@
-import { ko } from '@/shared/lib/ko';
 import { isPlainObject } from '@/shared/utils/validators';
+import ko from 'knockout';
 import { createElement, type ElementType } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 

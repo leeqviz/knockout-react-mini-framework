@@ -4,7 +4,7 @@ import {
   type ReactComponentWithRouterViewModelParams,
 } from '@/app/models';
 import { MainEntryPointLazy, type MainEntryPointProps } from '@/modules/main';
-import { ko } from '@/shared/lib/ko';
+import ko from 'knockout';
 
 export class MainViewModel extends ReactComponentWithRouterViewModel<MainEntryPointProps> {
   public bindingOptions: KnockoutComputed<

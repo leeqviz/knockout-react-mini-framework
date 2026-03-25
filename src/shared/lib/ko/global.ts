@@ -5,9 +5,6 @@ import type {
 } from './types';
 
 declare global {
-  interface Window {
-    ko: KnockoutStatic; //typeof import('knockout');
-  }
   interface KnockoutExtenders {
     [name: string]: unknown;
     localStorageSync<T>(
@@ -68,5 +65,3 @@ declare global {
     }
   }
 }
-
-export const ko = window.ko;

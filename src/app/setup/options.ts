@@ -1,4 +1,4 @@
-import { ko } from '@/shared/lib/ko';
+import ko from 'knockout';
 
 export function setupOptions() {
   ko.options.deferUpdates = true;
