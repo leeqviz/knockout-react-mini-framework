@@ -3,15 +3,14 @@
 [![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![React](https://img.shields.io/badge/react-%2320232a.svg?style=flat&logo=react&logoColor=%2361DAFB)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![JavaScript](https://img.shields.io/badge/javascript-%23F7DF1E.svg?style=flat&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![Knockout.js](https://img.shields.io/badge/Knockout.js-BF1D2D?style=flat&logo=knockout.js&logoColor=white)](https://knockoutjs.com/)
 [![jQuery](https://img.shields.io/badge/jquery-%230769AD.svg?style=flat&logo=jquery&logoColor=white)](https://jquery.com/)
-[![Zustand](https://img.shields.io/badge/zustand-%23443E38.svg?style=flat)](https://github.com/pmndrs/zustand)
+[![Zustand](https://img.shields.io/badge/zustand-%23443E38.svg?style=flat)](https://zustand-demo.pmnd.rs/)
 [![Tailwind CSS](https://img.shields.io/badge/tailwindcss-%2306B6D4.svg?style=flat&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Vitest](https://img.shields.io/badge/vitest-%236E9F18.svg?style=flat&logo=vitest&logoColor=white)](https://vitest.dev/)
 [![ESLint](https://img.shields.io/badge/eslint-%234B32C3.svg?style=flat&logo=eslint&logoColor=white)](https://eslint.org/)
 [![Prettier](https://img.shields.io/badge/prettier-%23F7B93E.svg?style=flat&logo=prettier&logoColor=black)](https://prettier.io/)
-[![Node.js](https://img.shields.io/badge/node.js-6DA55F?style=flat&logo=node.js&logoColor=white)](https://nodejs.org/en)
+[![Node.js](https://img.shields.io/badge/node.js-6DA55F?style=flat&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![React Testing Library](https://img.shields.io/badge/-React%20Testing%20Library-E33332?style=flat&logo=testing-library&logoColor=white)](https://testing-library.com/)
 
 ## 💡 About project
@@ -21,7 +20,7 @@ A hybrid web application that exemplifies the embedding of independent React com
 ## ⚙️ Technology stack
 
 1. **Bundler**: Vite _(v6.4+)_
-2. **Language**: JavaScript _(ESM)_, TypeScript _(v5.9+ Strict Mode)_
+2. **Language**: TypeScript _(v5.9+ Strict Mode)_
 3. **Infrastructure**: Knockout.js _(v3.5+)_
 4. **UI**: React _(v19.2+)_, ReactDOM _(v19.2+)_, jQuery _(v4.0+)_, jQueryUI _(v1.14+)_
 5. **Global State Manager**: Zustand _(v5.0+)_
