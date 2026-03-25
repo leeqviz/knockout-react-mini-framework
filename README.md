@@ -20,13 +20,13 @@ A hybrid web application that exemplifies the embedding of independent React com
 
 1. **Bundler**: Vite
 2. **Language**: JavaScript, TypeScript _(Strict Mode)_
-3. **Infrastructure**: Knockout.js _(v3.5.2)_
-4. **UI**: React _(v19)_, jQuery _(v4)_
+3. **Infrastructure**: Knockout.js _(v3.5+)_
+4. **UI**: React _(v19+)_, jQuery _(v4+)_
 5. **Global State Manager**: Zustand
-6. **Linter**: ESLint _(v9 Flat Config)_
+6. **Linter**: ESLint _(v9+ Flat Config)_
 7. **Formatter**: Prettier
 8. **Testing framework**: Vitest, React Testing Library
-9. **Styling**: Tailwind CSS _(v4)_, CSS modules
+9. **Styling**: Tailwind CSS _(v4+)_, CSS modules
 
 ## 🧩 Architecture
 
