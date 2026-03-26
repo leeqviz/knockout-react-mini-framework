@@ -148,7 +148,7 @@ export interface RouterSnapshot<
     options?: NavigateOptions,
   ) => void;
 
-  back: () => void;
+  back: (fallback?: string | undefined) => void;
   forward: () => void;
   go: (delta: number) => void;
 

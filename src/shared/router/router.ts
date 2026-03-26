@@ -1028,8 +1028,12 @@ export class BaseRouter<
     return true;
   };
 
-  public back = (): void => {
-    window.history.back();
+  public back = (fallback: string | undefined = '/'): void => {
+    if (window.history.length <= 1 && fallback) {
+      this.navigate(fallback, { replace: true });
+    } else {
+      window.history.back();
+    }
   };
 
   public forward = (): void => {
