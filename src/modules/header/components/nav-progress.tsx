@@ -8,27 +8,31 @@ export function NavProgress() {
   const [width, setWidth] = useState(0);
   const [visible, setVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasStarted = useRef(false);
 
   useEffect(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+
     if (isLoading) {
+      hasStarted.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVisible(true);
       setWidth(0);
-      // imitation of progress, can be replaced with real progress from router if available
       requestAnimationFrame(() => {
         requestAnimationFrame(() => setWidth(70));
       });
-    } else if (visible) {
+    } else if (hasStarted.current) {
       setWidth(100);
       timerRef.current = setTimeout(() => {
         setVisible(false);
         setWidth(0);
+        hasStarted.current = false;
       }, 300);
     }
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
 
   if (!visible) return null;

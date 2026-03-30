@@ -8,6 +8,10 @@
   </head>
   <body>
     <div id="root">
+      <header-lazy-component
+        class="react-component"
+        params="{ withRouter: true }"
+      ></header-lazy-component>
       <nav>
         <a href="/" data-bind="link: true">Home</a>
         <a href="/test" data-bind="link: true">Test</a>
@@ -20,10 +24,6 @@
           </p>
         </div>
       </nav>
-      <header-lazy-component
-        class="react-component"
-        params="{ withRouter: true }"
-      ></header-lazy-component>
 
       <main data-bind="component: bindingOptions"></main>
 

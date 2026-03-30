@@ -53,7 +53,6 @@ export function Header({
           .join(' ')}
       >
         <div className="header__inner">
-          {/* Логотип */}
           <NavLink
             to="/"
             className="header__logo"
@@ -63,19 +62,16 @@ export function Header({
             {logo ?? <DefaultLogo />}
           </NavLink>
 
-          {/* Desktop nav */}
           <nav className="header__nav" aria-label="Main navigation">
             {items.map((item) => (
               <NavBarItem key={item.to} item={item} />
             ))}
           </nav>
 
-          {/* Правая зона */}
           <div className="header__actions">
             {actions}
             <ThemeToggle />
 
-            {/* Гамбургер */}
             <button
               className={[
                 'header__hamburger',
@@ -95,7 +91,6 @@ export function Header({
           </div>
         </div>
 
-        {/* Mobile menu */}
         <div
           id="mobile-menu"
           className={['header__mobile', mobileOpen && 'header__mobile--open']
