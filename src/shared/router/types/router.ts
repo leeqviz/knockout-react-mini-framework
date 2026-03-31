@@ -161,14 +161,14 @@ export interface RouterSnapshot<
   locationAPI: {
     pendingLocation: NavigationLocation | null;
     navigationType: RouterNavigationType;
-    isNavigating: boolean;
+    isPending: boolean;
     navigate: (path: string, options?: NavigateOptions) => void;
     navigateExternal: (path: string, options?: NavigateExternalOptions) => void;
     back: (fallback?: string | undefined) => void;
     forward: () => void;
     go: (delta: number) => void;
     blockerState: BlockerState;
-    blockedTo: NavigationLocation | null;
+    blockedLocation: NavigationLocation | null;
     setBlocker: (
       id: string,
       fn:
@@ -210,5 +210,5 @@ export type To = string | { pathname: string; search?: string; hash?: string };
 export interface LinkRenderState {
   isActive: boolean;
   isExact: boolean;
-  isNavigating: boolean;
+  isPending: boolean;
 }

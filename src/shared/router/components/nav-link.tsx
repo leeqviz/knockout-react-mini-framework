@@ -4,13 +4,9 @@ import { type LinkProps, Link } from './link';
 
 export function NavLink({ className, ...props }: LinkProps) {
   const resolvedClassName = useCallback(
-    ({
-      isActive,
-      isExact,
-      isNavigating,
-    }: LinkRenderState): string | undefined => {
+    ({ isActive, isExact, isPending }: LinkRenderState): string | undefined => {
       if (typeof className === 'function')
-        return className({ isActive, isExact, isNavigating });
+        return className({ isActive, isExact, isPending });
 
       const classes = [className];
       if (isActive) classes.push('active');

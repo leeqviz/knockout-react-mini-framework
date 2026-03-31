@@ -34,7 +34,7 @@ export function useBlocker<
 
   return {
     state: locationAPI.blockerState,
-    location: locationAPI.blockedTo,
+    location: locationAPI.blockedLocation,
     proceed: locationAPI.proceedBlocked,
     reset: locationAPI.resetBlocked,
   };

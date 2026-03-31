@@ -9,10 +9,10 @@ export interface Navigation {
 }
 
 export function useNavigation(): Navigation {
-  const { isNavigating, pendingLocation } = useRouter().locationAPI;
+  const { isPending, pendingLocation } = useRouter().locationAPI;
 
   return {
-    state: isNavigating ? 'loading' : 'idle',
+    state: isPending ? 'loading' : 'idle',
     location: pendingLocation,
   };
 }

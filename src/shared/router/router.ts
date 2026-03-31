@@ -64,6 +64,7 @@ export class BaseRouter<
     meta?: ScrollBehaviorMeta<TMeta> | undefined,
   ) => ScrollBehaviorOptions | null;
   protected readonly stateCompare: (a: unknown, b: unknown) => boolean;
+
   protected readonly beforeNavigateHook: BeforeNavigateHook<TMeta> | undefined;
   protected readonly afterNavigateHook: AfterNavigateHook<TMeta> | undefined;
   protected readonly onNavigationBlockedHook:
@@ -76,6 +77,7 @@ export class BaseRouter<
   protected readonly confirmLeaveHook:
     | ((to: NavigationLocation, from: RouteState<TMeta> | null) => boolean)
     | undefined;
+
   protected readonly titleResolver: TitleResolver<TMeta> | undefined;
   protected readonly metaTagsResolver: MetaTagsResolver<TMeta> | undefined;
 
@@ -110,11 +112,12 @@ export class BaseRouter<
   public routeMeta: KnockoutObservable<TMeta | undefined>;
   public routePattern: KnockoutObservable<string | undefined>;
 
-  public isNavigating: KnockoutObservable<boolean>;
-  public pendingLocation: KnockoutObservable<NavigationLocation | null>;
   public navigationType: KnockoutObservable<RouterNavigationType>;
+  public isPending: KnockoutObservable<boolean>;
+  public pendingLocation: KnockoutObservable<NavigationLocation | null>;
   public blockerState: KnockoutObservable<BlockerState>;
-  public blockedTo: KnockoutObservable<NavigationLocation | null>;
+  public blockedLocation: KnockoutObservable<NavigationLocation | null>;
+
   public snapshot: KnockoutComputed<RouterSnapshot<TMeta>>;
 
   protected constructor(options?: RouterOptions<TMeta>) {
@@ -169,11 +172,11 @@ export class BaseRouter<
       readHistoryState(window.history.state).data,
     );
 
-    this.isNavigating = ko.observable(false);
+    this.isPending = ko.observable(false);
     this.pendingLocation = ko.observable(null);
     this.navigationType = ko.observable<RouterNavigationType>('pop');
     this.blockerState = ko.observable<BlockerState>('unblocked');
-    this.blockedTo = ko.observable(null);
+    this.blockedLocation = ko.observable(null);
     this.snapshot = ko.pureComputed(() => this.getSnapshot());
   }
 
@@ -275,10 +278,10 @@ export class BaseRouter<
     if (this.enableBeforeUnload)
       window.removeEventListener('beforeunload', this.handleBeforeUnload);
 
-    this.isNavigating(false);
+    this.isPending(false);
     this.pendingLocation(null);
     this.blockerState('unblocked');
-    this.blockedTo(null);
+    this.blockedLocation(null);
     this.pendingProceed = null;
     this.currentMask = undefined;
     this.blockers.clear();
@@ -365,7 +368,7 @@ export class BaseRouter<
       );
       if (shouldBlock) {
         this.blockerState('blocked');
-        this.blockedTo(to);
+        this.blockedLocation(to);
         this.pendingProceed = () => this.navigate(path, options);
         return;
       }
@@ -627,10 +630,10 @@ export class BaseRouter<
         forward: this.forward,
         go: this.go,
         pendingLocation: this.pendingLocation(),
-        isNavigating: this.isNavigating(),
+        isPending: this.isPending(),
         navigationType: this.navigationType(),
         blockerState: this.blockerState(),
-        blockedTo: this.blockedTo(),
+        blockedLocation: this.blockedLocation(),
         setBlocker: this.setBlocker,
         proceedBlocked: this.proceedBlocked,
         resetBlocked: this.resetBlocked,
@@ -728,7 +731,7 @@ export class BaseRouter<
           previousMask,
         );
         this.blockerState('blocked');
-        this.blockedTo(to);
+        this.blockedLocation(to);
         this.notifyNavigationBlocked(to);
         this.pendingProceed = () =>
           this.navigate(to.pathname + to.search + to.hash, {
@@ -1359,7 +1362,7 @@ export class BaseRouter<
   };
 
   protected notifyBeforeNavigate = (to: NavigationLocation): void => {
-    this.isNavigating(true);
+    this.isPending(true);
     this.pendingLocation(to);
     this.beforeNavigateHook?.(to, this.currentRouteState());
   };
@@ -1367,7 +1370,7 @@ export class BaseRouter<
   protected notifyAfterNavigate = (to: RouteState<TMeta>): void => {
     this.applyDocumentMeta(to);
     this.afterNavigateHook?.(to, this.previousRouteState);
-    this.isNavigating(false);
+    this.isPending(false);
     this.pendingLocation(null);
   };
 
@@ -1617,7 +1620,7 @@ export class BaseRouter<
       this.blockers.delete(id);
       if (this.blockers.size === 0) {
         this.blockerState('unblocked');
-        this.blockedTo(null);
+        this.blockedLocation(null);
         this.pendingProceed = null;
       }
     } else {
@@ -1630,7 +1633,7 @@ export class BaseRouter<
     this.blockerState('proceeding');
     const proceed = this.pendingProceed;
     this.pendingProceed = null;
-    this.blockedTo(null);
+    this.blockedLocation(null);
     proceed();
     if (this.blockerState() === 'proceeding') this.blockerState('unblocked');
   };
@@ -1638,7 +1641,7 @@ export class BaseRouter<
   public resetBlocked = (): void => {
     if (this.blockerState() === 'unblocked') return;
     this.blockerState('unblocked');
-    this.blockedTo(null);
+    this.blockedLocation(null);
     this.pendingProceed = null;
   };
 }

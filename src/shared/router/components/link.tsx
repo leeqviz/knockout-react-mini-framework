@@ -42,7 +42,7 @@ export function Link({
 
   const isActive = !external && router.routeAPI.isActive(toPath(to));
   const isExact = !external && router.routeAPI.isExact(toPath(to));
-  const isNavigating = router.locationAPI.isNavigating;
+  const isPending = router.locationAPI.isPending;
 
   const href = useMemo(() => {
     if (external) return toPath(to);
@@ -55,10 +55,10 @@ export function Link({
 
   const resolvedClassName = useMemo(() => {
     if (typeof className === 'function') {
-      return className({ isActive, isExact, isNavigating }) || undefined;
+      return className({ isActive, isExact, isPending }) || undefined;
     }
     return className || undefined;
-  }, [className, isActive, isExact, isNavigating]);
+  }, [className, isActive, isExact, isPending]);
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {

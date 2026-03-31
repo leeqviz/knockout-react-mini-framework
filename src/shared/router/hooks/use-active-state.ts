@@ -15,7 +15,7 @@ export function useActiveState(path: string): ActiveState {
       isActive: routeAPI.isActive(path),
       isExact: routeAPI.isExact(path),
       isPending:
-        locationAPI.isNavigating &&
+        locationAPI.isPending &&
         routeAPI.isActive(path) &&
         locationAPI.pendingLocation?.pathname === path,
     }),

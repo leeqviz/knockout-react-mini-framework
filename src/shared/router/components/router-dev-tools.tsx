@@ -40,7 +40,7 @@ export function RouterDevTools() {
               pattern: router.route.pattern,
               params: router.params,
               navigationType: router.locationAPI.navigationType,
-              isNavigating: router.locationAPI.isNavigating,
+              isPending: router.locationAPI.isPending,
               blockerState: router.locationAPI.blockerState,
               meta: router.route.meta,
             },
