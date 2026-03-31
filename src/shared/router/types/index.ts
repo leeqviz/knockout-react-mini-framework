@@ -21,8 +21,9 @@ export type {
 export type {
   AfterNavigateHook,
   BeforeNavigateHook,
-  BlockerFunction,
+  BlockerAction,
   BlockerState,
+  ConfirmLeaveHook,
   LinkRenderState,
   MetaTagsResolver,
   NavigateExternalOptions,

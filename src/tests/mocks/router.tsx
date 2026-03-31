@@ -37,7 +37,12 @@ export const mockedRouterContextValue: RouterSnapshot = {
     proceedBlocked: vi.fn(),
     resetBlocked: vi.fn(),
   },
-  route: { name: undefined, meta: undefined, pattern: undefined },
+  route: {
+    name: undefined,
+    meta: undefined,
+    pattern: undefined,
+    mask: undefined,
+  },
   routeAPI: {
     generatePath: vi.fn(),
     resolveRoute: vi.fn(),

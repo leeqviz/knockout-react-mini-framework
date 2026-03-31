@@ -36,7 +36,7 @@ export function scrollToFragment(
   });
 }
 
-export function defaultScrollBehavior<
+export function defaultScrollBehaviorResolver<
   TMeta extends Record<string, unknown> = Record<string, unknown>,
 >(meta?: ScrollBehaviorMeta<TMeta> | undefined): ScrollBehaviorOptions | null {
   if (meta?.options) return meta.options;

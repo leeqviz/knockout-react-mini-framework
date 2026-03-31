@@ -41,7 +41,7 @@ export type MetaTagsResolver<
 
 export type RouterNavigationType = 'push' | 'pop' | 'replace';
 export type BlockerState = 'unblocked' | 'blocked' | 'proceeding';
-export type BlockerFunction<TMeta extends Record<string, unknown>> = (
+export type BlockerAction<TMeta extends Record<string, unknown>> = (
   to: NavigationLocation,
   from: RouteState<TMeta> | null,
 ) => boolean;
@@ -72,12 +72,16 @@ export type NavigationErrorHook = (
 
 export type NavigationNotFoundHook = (to: NavigationLocation) => void;
 
+export type ConfirmLeaveHook<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> = (to: NavigationLocation, from: RouteState<TMeta> | null) => boolean;
+
 export interface RouterOptions<
   TMeta extends Record<string, unknown> = Record<string, unknown>,
 > {
   routes?: RouteConfig<TMeta>[] | undefined;
   middlewares?: RouteMiddleware<TMeta>[] | undefined;
-  scrollBehavior?: ScrollBehaviorStrategy<TMeta>;
+  scrollBehaviorResolver?: ScrollBehaviorStrategy<TMeta>;
   stateCompare?: StateCompareStrategy;
   titleResolver?: TitleResolver<TMeta>;
   metaTagsResolver?: MetaTagsResolver<TMeta>;
@@ -86,14 +90,11 @@ export interface RouterOptions<
   onNavigationBlocked?: NavigationBlockedHook<TMeta>;
   onNavigationError?: NavigationErrorHook;
   onNavigationNotFound?: NavigationNotFoundHook;
+  confirmLeave?: ConfirmLeaveHook<TMeta>;
   fallback?: string;
   debug?: boolean;
   base?: string;
   caseSensitive?: boolean;
-  confirmLeave?: (
-    to: NavigationLocation,
-    from: RouteState<TMeta> | null,
-  ) => boolean;
   enableBeforeUnload?: boolean;
 
   maxScrollEntries?: number; // default: 50
@@ -182,6 +183,7 @@ export interface RouterSnapshot<
     name?: string | undefined;
     meta?: TMeta | undefined;
     pattern?: string | undefined;
+    mask?: string | undefined;
   };
   routeAPI: {
     generatePath: (

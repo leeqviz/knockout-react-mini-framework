@@ -1,9 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
-import type {
-  BlockerFunction,
-  BlockerState,
-  NavigationLocation,
-} from '../types';
+import type { BlockerAction, BlockerState, NavigationLocation } from '../types';
 import { useRouter } from './use-router';
 
 export interface Blocker {
@@ -15,7 +11,7 @@ export interface Blocker {
 
 export function useBlocker<
   TMeta extends Record<string, unknown> = Record<string, unknown>,
->(shouldBlock: boolean | BlockerFunction<TMeta>): Blocker {
+>(shouldBlock: boolean | BlockerAction<TMeta>): Blocker {
   const { locationAPI } = useRouter<TMeta>();
   const id = useId();
 

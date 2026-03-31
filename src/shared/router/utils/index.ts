@@ -38,7 +38,7 @@ export {
 export { AllowedURLProtocols } from './protocols';
 export { ResolveResultType } from './route';
 export {
-  defaultScrollBehavior,
+  defaultScrollBehaviorResolver,
   scrollToFragment,
   scrollToTarget,
 } from './scroll';

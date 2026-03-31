@@ -2,7 +2,9 @@ import { ko } from '@/shared/lib/ko';
 import type {
   AfterNavigateHook,
   BeforeNavigateHook,
+  BlockerAction,
   BlockerState,
+  ConfirmLeaveHook,
   MetaTagsResolver,
   NavigateExternalOptions,
   NavigateOptions,
@@ -23,6 +25,7 @@ import type {
   RouteState,
   ScrollBehaviorMeta,
   ScrollBehaviorOptions,
+  ScrollBehaviorStrategy,
   TitleResolver,
 } from './types';
 import {
@@ -30,7 +33,7 @@ import {
   AllowedURLProtocols,
   applyQueryParamConfig,
   buildPath,
-  defaultScrollBehavior,
+  defaultScrollBehaviorResolver,
   generateHistoryStateKey,
   getFullPath,
   handleResolveResult,
@@ -57,47 +60,33 @@ export class BaseRouter<
   TMeta extends Record<string, unknown> = Record<string, unknown>,
 > {
   protected readonly base: string;
+  protected readonly fallback: string;
   protected readonly routes: RouteConfig<TMeta>[];
   protected readonly middlewares: RouteMiddleware<TMeta>[];
+  protected readonly enableBeforeUnload: boolean;
+  protected readonly caseSensitive: boolean;
+  protected readonly debug: boolean;
+  protected readonly maxScrollEntries: number;
+  protected readonly maxRewriteDepth: number;
 
-  protected readonly scrollBehavior: (
-    meta?: ScrollBehaviorMeta<TMeta> | undefined,
-  ) => ScrollBehaviorOptions | null;
   protected readonly stateCompare: (a: unknown, b: unknown) => boolean;
-
-  protected readonly beforeNavigateHook: BeforeNavigateHook<TMeta> | undefined;
-  protected readonly afterNavigateHook: AfterNavigateHook<TMeta> | undefined;
-  protected readonly onNavigationBlockedHook:
-    | NavigationBlockedHook<TMeta>
-    | undefined;
-  protected readonly onNavigationErrorHook: NavigationErrorHook | undefined;
-  protected readonly onNavigationNotFoundHook:
-    | NavigationNotFoundHook
-    | undefined;
-  protected readonly confirmLeaveHook:
-    | ((to: NavigationLocation, from: RouteState<TMeta> | null) => boolean)
-    | undefined;
-
+  protected readonly scrollBehaviorResolver: ScrollBehaviorStrategy<TMeta>;
   protected readonly titleResolver: TitleResolver<TMeta> | undefined;
   protected readonly metaTagsResolver: MetaTagsResolver<TMeta> | undefined;
 
-  protected readonly caseSensitive: boolean;
-  protected readonly debug: boolean;
-  protected readonly enableBeforeUnload: boolean;
-  protected readonly maxScrollEntries: number;
-  protected readonly maxRewriteDepth: number;
-  protected readonly fallback: string;
+  protected readonly beforeNavigation: BeforeNavigateHook<TMeta> | undefined;
+  protected readonly afterNavigation: AfterNavigateHook<TMeta> | undefined;
+  protected readonly onRouteBlocked: NavigationBlockedHook<TMeta> | undefined;
+  protected readonly onRouteError: NavigationErrorHook | undefined;
+  protected readonly onRouteNotFound: NavigationNotFoundHook | undefined;
+  protected readonly onRouteLeave: ConfirmLeaveHook<TMeta> | undefined;
 
-  protected scrollOptions = new Map<string, ScrollBehaviorOptions | null>();
+  protected isStarted: boolean = false;
   protected currentHistoryKey: string = '';
   protected previousRouteState: RouteState<TMeta> | null = null;
-  protected isStarted: boolean = false;
-  protected blockers = new Map<
-    string,
-    (to: NavigationLocation, from: RouteState<TMeta> | null) => boolean
-  >();
-  protected pendingProceed: (() => void) | null = null;
-  protected currentMask: string | undefined;
+  protected scrollOptions = new Map<string, ScrollBehaviorOptions>();
+  protected blockerActions = new Map<string, BlockerAction<TMeta>>();
+  protected memorizedAction: (() => void) | null = null;
 
   public component: KnockoutObservable<string>;
   public params: KnockoutObservable<RouteParams>;
@@ -111,6 +100,7 @@ export class BaseRouter<
   public routeName: KnockoutObservable<string | undefined>;
   public routeMeta: KnockoutObservable<TMeta | undefined>;
   public routePattern: KnockoutObservable<string | undefined>;
+  public routeMask: KnockoutObservable<string | undefined>;
 
   public navigationType: KnockoutObservable<RouterNavigationType>;
   public isPending: KnockoutObservable<boolean>;
@@ -128,20 +118,21 @@ export class BaseRouter<
     this.maxScrollEntries = options?.maxScrollEntries ?? 50;
     this.maxRewriteDepth = options?.maxRewriteDepth ?? 10;
     this.middlewares = options?.middlewares || [];
-    this.scrollBehavior = options?.scrollBehavior ?? defaultScrollBehavior;
+    this.scrollBehaviorResolver =
+      options?.scrollBehaviorResolver ?? defaultScrollBehaviorResolver;
     this.stateCompare = resolveComparator(options?.stateCompare);
     this.titleResolver = options?.titleResolver;
     this.metaTagsResolver = options?.metaTagsResolver;
-    this.beforeNavigateHook = options?.beforeNavigate;
-    this.afterNavigateHook = options?.afterNavigate;
-    this.onNavigationBlockedHook = options?.onNavigationBlocked;
-    this.onNavigationErrorHook = options?.onNavigationError;
-    this.confirmLeaveHook = options?.confirmLeave;
+    this.beforeNavigation = options?.beforeNavigate;
+    this.afterNavigation = options?.afterNavigate;
+    this.onRouteBlocked = options?.onNavigationBlocked;
+    this.onRouteError = options?.onNavigationError;
+    this.onRouteLeave = options?.confirmLeave;
     this.enableBeforeUnload = options?.confirmLeave
       ? (options?.enableBeforeUnload ?? true)
       : false;
     this.fallback = options?.fallback ?? '';
-    this.onNavigationNotFoundHook = options?.onNavigationNotFound;
+    this.onRouteNotFound = options?.onNavigationNotFound;
 
     const initialUrl = new URL(window.location.href);
     const strippedPathname = normalizePath(
@@ -164,6 +155,7 @@ export class BaseRouter<
     this.routeName = ko.observable(initialMatch?.name);
     this.routeMeta = ko.observable(initialMatch?.meta);
     this.routePattern = ko.observable(initialMatch?.pattern);
+    this.routeMask = ko.observable<string | undefined>(undefined);
 
     this.locationPathname = ko.observable(strippedPathname);
     this.locationSearch = ko.observable(initialUrl.search);
@@ -282,17 +274,18 @@ export class BaseRouter<
     this.pendingLocation(null);
     this.blockerState('unblocked');
     this.blockedLocation(null);
-    this.pendingProceed = null;
-    this.currentMask = undefined;
-    this.blockers.clear();
+    this.memorizedAction = null;
+    this.routeMask(undefined);
+    this.blockerActions.clear();
+    this.scrollOptions.clear();
     this.snapshot.dispose();
   };
 
   protected handleBeforeUnload = (event: BeforeUnloadEvent): void => {
-    if (!this.confirmLeaveHook) return;
+    if (!this.onRouteLeave) return;
 
     if (
-      !this.confirmLeaveHook(
+      !this.onRouteLeave(
         {
           pathname: '',
           search: '',
@@ -345,17 +338,17 @@ export class BaseRouter<
     )
       return;
 
-    if (this.confirmLeaveHook && !samePath) {
+    if (this.onRouteLeave && !samePath) {
       const to: NavigationLocation = {
         pathname: normalizePath(nextUrl.pathname),
         search: nextUrl.search,
         hash: nextHash,
         state: options?.state ?? null,
       };
-      if (!this.confirmLeaveHook(to, this.currentRouteState())) return;
+      if (!this.onRouteLeave(to, this.currentRouteState())) return;
     }
 
-    if (this.blockers.size > 0 && this.blockerState() !== 'proceeding') {
+    if (this.blockerActions.size > 0 && this.blockerState() !== 'proceeding') {
       const to: NavigationLocation = {
         pathname: normalizePath(nextUrl.pathname),
         search: nextUrl.search,
@@ -363,13 +356,13 @@ export class BaseRouter<
         state: nextState,
       };
       const from = this.currentRouteState();
-      const shouldBlock = [...this.blockers.values()].some((fn) =>
+      const shouldBlock = [...this.blockerActions.values()].some((fn) =>
         fn(to, from),
       );
       if (shouldBlock) {
         this.blockerState('blocked');
         this.blockedLocation(to);
-        this.pendingProceed = () => this.navigate(path, options);
+        this.memorizedAction = () => this.navigate(path, options);
         return;
       }
     }
@@ -586,7 +579,7 @@ export class BaseRouter<
     replace?: boolean,
     mask?: string,
   ): void => {
-    this.currentMask = mask;
+    this.routeMask(mask);
     if (replace) {
       this.navigationType('replace');
       window.history.replaceState(
@@ -642,6 +635,7 @@ export class BaseRouter<
         name: this.routeName(),
         meta: this.routeMeta(),
         pattern: this.routePattern(),
+        mask: this.routeMask(),
       },
       routeAPI: {
         generatePath: this.generatePath,
@@ -661,7 +655,7 @@ export class BaseRouter<
     const previousHash = this.locationHash();
     const previousState = this.locationState();
     const previousHistoryKey = this.currentHistoryKey;
-    const previousMask = this.currentMask;
+    const previousMask = this.routeMask();
 
     const nextFullPath = getFullPath(this.base);
     const nextHash = window.location.hash;
@@ -676,7 +670,7 @@ export class BaseRouter<
 
     const samePath = previousFullPath === nextFullPath;
 
-    if (this.confirmLeaveHook && !samePath) {
+    if (this.onRouteLeave && !samePath) {
       const parsedNext = parseUrl(
         new URL(nextFullPath + nextHash, window.location.origin),
       );
@@ -686,7 +680,7 @@ export class BaseRouter<
         hash: parsedNext.hash,
         state: nextUserState,
       };
-      if (!this.confirmLeaveHook(to, this.currentRouteState())) {
+      if (!this.onRouteLeave(to, this.currentRouteState())) {
         this.currentHistoryKey = previousHistoryKey;
         window.history.replaceState(
           wrapHistoryState(previousState, previousHistoryKey, previousMask),
@@ -711,7 +705,7 @@ export class BaseRouter<
       new URL(nextFullPath + nextHash, window.location.origin),
     );
 
-    if (this.blockers.size > 0 && this.blockerState() !== 'proceeding') {
+    if (this.blockerActions.size > 0 && this.blockerState() !== 'proceeding') {
       const to: NavigationLocation = {
         pathname: originalUrl.pathname,
         search: originalUrl.search,
@@ -719,7 +713,7 @@ export class BaseRouter<
         state: nextUserState,
       };
       const from = this.currentRouteState();
-      const shouldBlock = [...this.blockers.values()].some((fn) =>
+      const shouldBlock = [...this.blockerActions.values()].some((fn) =>
         fn(to, from),
       );
       if (shouldBlock) {
@@ -733,7 +727,7 @@ export class BaseRouter<
         this.blockerState('blocked');
         this.blockedLocation(to);
         this.notifyNavigationBlocked(to);
-        this.pendingProceed = () =>
+        this.memorizedAction = () =>
           this.navigate(to.pathname + to.search + to.hash, {
             state: nextUserState,
             ...(mask ? { rewriteTo: mask } : {}),
@@ -1029,7 +1023,7 @@ export class BaseRouter<
     mask?: string,
   ): void => {
     this.currentHistoryKey = key;
-    this.currentMask = mask;
+    this.routeMask(mask);
     window.history.replaceState(
       wrapHistoryState(state, key, mask),
       '',
@@ -1232,7 +1226,7 @@ export class BaseRouter<
 
   protected handleScroll = (meta: ScrollBehaviorMeta<TMeta>): void => {
     if (meta.to?.hash) scrollToFragment(meta.to.hash, meta.options);
-    else scrollToTarget(this.scrollBehavior(meta));
+    else scrollToTarget(this.scrollBehaviorResolver(meta));
   };
 
   protected getCurrentSearchInstance = (): URLSearchParams => {
@@ -1364,29 +1358,29 @@ export class BaseRouter<
   protected notifyBeforeNavigate = (to: NavigationLocation): void => {
     this.isPending(true);
     this.pendingLocation(to);
-    this.beforeNavigateHook?.(to, this.currentRouteState());
+    this.beforeNavigation?.(to, this.currentRouteState());
   };
 
   protected notifyAfterNavigate = (to: RouteState<TMeta>): void => {
     this.applyDocumentMeta(to);
-    this.afterNavigateHook?.(to, this.previousRouteState);
+    this.afterNavigation?.(to, this.previousRouteState);
     this.isPending(false);
     this.pendingLocation(null);
   };
 
   protected notifyNavigationBlocked = (to: NavigationLocation): void => {
-    this.onNavigationBlockedHook?.(to, this.currentRouteState());
+    this.onRouteBlocked?.(to, this.currentRouteState());
   };
 
   protected notifyNavigationError = (
     error: unknown,
     to: NavigationLocation,
   ): boolean => {
-    return this.onNavigationErrorHook?.(error, to) === true;
+    return this.onRouteError?.(error, to) === true;
   };
 
   protected notifyNavigationNotFound = (to: NavigationLocation): void => {
-    this.onNavigationNotFoundHook?.(to);
+    this.onRouteNotFound?.(to);
   };
 
   protected buildNotFoundState = (
@@ -1617,24 +1611,24 @@ export class BaseRouter<
       | null,
   ): void => {
     if (fn === null) {
-      this.blockers.delete(id);
-      if (this.blockers.size === 0) {
+      this.blockerActions.delete(id);
+      if (this.blockerActions.size === 0) {
         this.blockerState('unblocked');
         this.blockedLocation(null);
-        this.pendingProceed = null;
+        this.memorizedAction = null;
       }
     } else {
-      this.blockers.set(id, fn);
+      this.blockerActions.set(id, fn);
     }
   };
 
   public proceedBlocked = (): void => {
-    if (this.blockerState() !== 'blocked' || !this.pendingProceed) return;
+    if (this.blockerState() !== 'blocked' || !this.memorizedAction) return;
     this.blockerState('proceeding');
-    const proceed = this.pendingProceed;
-    this.pendingProceed = null;
+    const action = this.memorizedAction;
+    this.memorizedAction = null;
     this.blockedLocation(null);
-    proceed();
+    action();
     if (this.blockerState() === 'proceeding') this.blockerState('unblocked');
   };
 
@@ -1642,6 +1636,6 @@ export class BaseRouter<
     if (this.blockerState() === 'unblocked') return;
     this.blockerState('unblocked');
     this.blockedLocation(null);
-    this.pendingProceed = null;
+    this.memorizedAction = null;
   };
 }
